@@ -17,7 +17,9 @@ Produce a reproducible, citable dataset and analysis toolkit measuring IPv4 vs I
 - A static web query interface requiring no server infrastructure
 - A clear upgrade path to a REST API when needed
 
-**Out of scope (initial):** traffic/utilization metrics (netflow, telescope) are placeholders; secondary metric integration is deferred until methodology is confirmed.
+**In scope (confirmed):** Three CAIDA public datasets — RouteViews pfx2as (corroborating BGP), AS2Org (corpus construction), and Ark IPv6 Topology (reachability validation).
+
+**Out of scope (initial):** UCSD Network Telescope requires restricted access and CAIDA's IPv6 telescope is a nascent 2025 research project with no published dataset yet. Netflow-based utilization metrics are deferred.
 
 ---
 
@@ -57,7 +59,15 @@ Produce a reproducible, citable dataset and analysis toolkit measuring IPv4 vs I
 
 **Primary source:** RouteViews MRT table dumps (RIBs), available at `archive.routeviews.org`. Snapshots published every 2 hours; historical data available from the early 2000s.
 
-**Corroborating sources:** RIPE RIS, CAIDA AS-Organization dataset, ARIN IRR. Used for corpus validation and secondary analysis, not as primary prefix data.
+**Corroborating sources (confirmed in-scope):**
+
+| Dataset | Access | Role |
+| --- | --- | --- |
+| CAIDA RouteViews pfx2as | Public download | Cross-validates RouteViews-derived prefix counts; daily IPv4+IPv6 snapshots |
+| CAIDA AS2Org | Public download + API | Primary tool for corpus construction; quarterly WHOIS-derived ASN→org mappings |
+| CAIDA Ark IPv6 Topology | Public download | Reachability validation — distinguishes agencies that *announce* IPv6 from those actually *reachable* via IPv6 |
+| RIPE RIS | Public | Additional BGP corroboration; European vantage points complement RouteViews |
+| ARIN IRR | Public | Cross-check for corpus construction |
 
 **Raw file handling:** MRT dumps are fetched ephemerally during pipeline runs and discarded after parsing. Only processed Parquet files and the DuckDB store are retained.
 
@@ -101,7 +111,9 @@ data/
 | `snapshots` | One row per RIB collection event, processing status |
 | `prefix_records` | Filtered parsed records for USG ASNs only |
 | `asn_corpus` | Curated USG ASN list with agency metadata and tier |
-| `secondary_metrics` | Placeholder; schema TBD pending netflow/telescope methodology |
+| `ark_reachability` | Ark IPv6 Topology data — per-ASN IPv6 reachability snapshots |
+| `caida_pfx2as` | CAIDA RouteViews pfx2as corroborating prefix records |
+| `secondary_metrics` | Reserved for netflow/utilization data; schema TBD |
 
 ### 3.5 Backfill & Incremental Runs
 
@@ -125,7 +137,7 @@ The corpus is a publishable research artifact and is cited separately from the a
 
 **Step 1 — Seed:** Query ARIN WHOIS REST API for organizations matching known federal identifiers (org handles containing `USGOV`, `DOD`, `NASA`, `HHS`, `DHS`, etc.) and name-based matching against the 24 CFO Act agencies and major DoD components.
 
-**Step 2 — Expand:** Cross-reference against CAIDA AS-Organization dataset and BGP.tools AS descriptions using fuzzy name matching. ASNs found in multiple sources are marked high-confidence.
+**Step 2 — Expand:** Cross-reference against CAIDA AS2Org (public API, quarterly updates) and BGP.tools AS descriptions using fuzzy name matching (`rapidfuzz`). ASNs found in multiple sources are marked high-confidence.
 
 **Step 3 — Validate:** Cross-check against public agency network disclosures (DISA documentation, GSA network inventory where available). Flag discrepancies for manual review.
 
@@ -175,7 +187,8 @@ usg_ipv6/
     deployment.py    ← prefix counts, dual-stack ratios, trends
     corpus.py        ← ASN lookup, tier filtering
     snapshots.py     ← time-series slicing, snapshot inventory
-    secondary.py     ← placeholder for netflow/telescope metrics
+    reachability.py  ← Ark IPv6 topology queries (announced vs reachable)
+    secondary.py     ← reserved for netflow/utilization metrics
   models.py          ← dataclasses for typed query results
 ```
 
@@ -188,6 +201,8 @@ usg_ipv6/
 | `mandate_progress(since=2020)` | Change in IPv6 deployment since OMB M-21-07 |
 | `compare_to_global(snapshot_ts)` | USG ratios vs global BGP table as baseline |
 | `top_movers(window)` | Agencies with largest IPv6 growth in a given time window |
+| `reachability_vs_announced(tier, snapshot_ts)` | Ark-derived ratio: ASNs reachable via IPv6 / ASNs announcing IPv6 prefixes |
+| `pfx2as_corroborate(snapshot_ts)` | Compare RouteViews-derived counts against CAIDA pfx2as for the same snapshot |
 
 ### 5.3 CLI Toolkit
 
@@ -215,7 +230,8 @@ toolkit/
     02_longitudinal_trends.ipynb
     03_agency_comparison.ipynb
     04_global_baseline.ipynb
-    05_secondary_metrics.ipynb      ← placeholder
+    05_reachability_analysis.ipynb  ← Ark IPv6 topology: announced vs reachable
+    06_caida_corroboration.ipynb    ← pfx2as cross-validation against RouteViews
   data/
     usg_asn_corpus.csv
     snapshots.duckdb                ← fetched from GitHub Releases
@@ -270,12 +286,16 @@ When server-side execution is needed:
 | Future API | FastAPI | Same query functions, minimal wrapping |
 | Automation | GitHub Actions | Zero additional infrastructure |
 | Data artifacts | GitHub Releases | 2GB limit; sufficient for USG-filtered DuckDB |
+| Corpus fuzzy matching | `rapidfuzz` | Fast Levenshtein/token-sort matching for org name normalization |
+| CAIDA AS2Org | Public API + download | Quarterly ASN→org mappings; primary corpus expansion source |
+| CAIDA Ark IPv6 | Public download | IPv6 reachability topology; distinguishes announced vs reachable |
+| CAIDA pfx2as | Public download | Daily RouteViews-derived prefix→AS mappings; corroborating BGP source |
 
 ---
 
 ## 9. Open Questions / Deferred Decisions
 
-- **Secondary metrics:** Netflow and telescope-based utilization metrics (potentially CAIDA telescope) are placeholders. Methodology TBD after primary pipeline is stable.
+- **Secondary metrics (netflow/utilization):** UCSD Network Telescope requires restricted access application; CAIDA's IPv6 telescope is a nascent 2025 research project without a published dataset. Ark IPv6 Topology is the in-scope CAIDA secondary layer. Netflow-based utilization remains deferred pending data access.
 - **Global baseline data:** `compare_to_global()` requires a non-filtered RouteViews parse. Storage implications to be assessed.
 - **Phase 2 hosting:** Cloudflare Workers vs VPS decision deferred until Phase 1 traffic patterns are understood.
 - **Corpus update frequency:** Weekly automation proposed; cadence may be adjusted based on how often USG ASN assignments actually change.
