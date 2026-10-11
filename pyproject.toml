@@ -11,12 +11,6 @@ dependencies = [
     "typer>=0.12",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "responses>=0.25",
-]
-
 [dependency-groups]
 dev = [
     "pytest>=8.0",

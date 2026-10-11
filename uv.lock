@@ -613,12 +613,6 @@ dependencies = [
     { name = "typer" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "responses" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
@@ -630,13 +624,10 @@ requires-dist = [
     { name = "duckdb", specifier = ">=0.10" },
     { name = "mrtparse", specifier = ">=2.0" },
     { name = "pyarrow", specifier = ">=15.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "rapidfuzz", specifier = ">=3.0" },
     { name = "requests", specifier = ">=2.31" },
-    { name = "responses", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "typer", specifier = ">=0.12" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [

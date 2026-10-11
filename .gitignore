@@ -2,6 +2,7 @@ data/raw/
 data/usg_ipv6.duckdb
 *.pyc
 __pycache__/
+.pytest_cache/
 .venv/
 dist/
 .superpowers/
