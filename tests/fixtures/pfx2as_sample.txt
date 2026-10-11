@@ -1,0 +1,5 @@
+# CAIDA RouteViews Prefix-to-AS
+# generated: 20240315
+192.0.2.0/24|396260
+2001:db8::/32|396260
+10.0.0.0/8|7018
