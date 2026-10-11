@@ -25,9 +25,13 @@ def _is_ipv4_mapped(prefix: str) -> bool:
 
 
 def _origin_asn(rib_entry: dict) -> int | None:
-    as_path = rib_entry.get("path_attributes", {}).get("as_path", [])
-    if as_path and isinstance(as_path[-1], list) and as_path[-1]:
-        return int(as_path[-1][-1])
+    for attr in rib_entry.get("path_attributes", []):
+        if 2 not in attr.get("type", {}):
+            continue
+        for seg in reversed(attr.get("value", [])):
+            values = seg.get("value", []) if isinstance(seg, dict) else []
+            if values:
+                return int(values[-1])
     return None
 
 

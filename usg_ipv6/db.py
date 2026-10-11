@@ -21,12 +21,13 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS snapshots (
-            snapshot_ts     TIMESTAMP PRIMARY KEY,
+            snapshot_ts     TIMESTAMP NOT NULL,
             collector       VARCHAR NOT NULL,
             source_url      VARCHAR NOT NULL,
             byte_count      BIGINT NOT NULL,
             status          VARCHAR NOT NULL,
-            processed_at    TIMESTAMP
+            processed_at    TIMESTAMP,
+            PRIMARY KEY (snapshot_ts, collector)
         )
     """)
     conn.execute("""

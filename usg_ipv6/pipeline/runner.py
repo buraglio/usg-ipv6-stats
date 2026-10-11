@@ -1,18 +1,18 @@
 import tempfile
 from datetime import datetime, timedelta, timezone
 
-from usg_ipv6.db import get_connection
+from usg_ipv6.db import get_connection, init_schema
 from usg_ipv6.pipeline.routeviews import fetch_rib, rib_url
 from usg_ipv6.pipeline.parse import parse_mrt
 from usg_ipv6.pipeline.normalize import load_parquet
 
 
 def _candidate_datetimes(since: datetime, until: datetime) -> list[datetime]:
-    """Generate 8-hour RIB timestamps (0000, 0800, 1600) between since and until."""
+    """Generate 2-hour RIB timestamps (0000, 0200, …, 2200) between since and until."""
     candidates = []
     current = since.replace(hour=0, minute=0, second=0, microsecond=0)
     while current <= until:
-        for hour in (0, 8, 16):
+        for hour in range(0, 24, 2):
             dt = current.replace(hour=hour)
             if since <= dt <= until:
                 candidates.append(dt)
@@ -28,6 +28,7 @@ def run_incremental(
 ) -> dict:
     """Fetch and process up to `limit` recent RIB snapshots for a collector."""
     conn = get_connection(db_path)
+    init_schema(conn)
     processed = 0
     # Walk backwards from now, most recent first
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -59,6 +60,7 @@ def run_backfill(
 ) -> dict:
     """Fetch and process all RIB snapshots for a collector in [since, until]."""
     conn = get_connection(db_path)
+    init_schema(conn)
     processed = 0
     candidates = _candidate_datetimes(since, until)
 

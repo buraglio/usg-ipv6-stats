@@ -1,4 +1,5 @@
 import time
+import warnings
 import requests
 
 ARIN_BASE = "https://whois.arin.net/rest"
@@ -19,6 +20,11 @@ def fetch_asns_for_org(org_handle: str, *, max_retries: int = 3) -> list[int]:
         if isinstance(raw, str):
             raw = [raw]
         return [int(a) for a in raw]
+    warnings.warn(
+        f"fetch_asns_for_org: all {max_retries} retries exhausted for {org_handle}; returning []",
+        UserWarning,
+        stacklevel=2,
+    )
     return []
 
 

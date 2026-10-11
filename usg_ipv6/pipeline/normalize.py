@@ -30,8 +30,8 @@ def load_parquet(
 
     conn.execute(
         "UPDATE snapshots SET status = 'processed', processed_at = NOW() "
-        "WHERE snapshot_ts = ?",
-        [snapshot_ts],
+        "WHERE snapshot_ts = ? AND collector = ?",
+        [snapshot_ts, collector],
     )
 
     return len(rows_to_insert)

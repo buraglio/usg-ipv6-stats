@@ -19,3 +19,16 @@ def test_init_schema_is_idempotent(tmp_path):
     conn = get_connection(str(tmp_path / "test.duckdb"))
     init_schema(conn)
     init_schema(conn)  # must not raise
+
+
+def test_snapshots_allows_same_timestamp_different_collectors(tmp_path):
+    from datetime import datetime
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    init_schema(conn)
+    ts = datetime(2024, 3, 15, 8, 0, 0)
+    conn.execute("INSERT INTO snapshots VALUES (?, ?, ?, ?, ?, NULL)",
+                 [ts, "route-views2", "http://rv2/rib.bz2", 1000, "processed"])
+    conn.execute("INSERT INTO snapshots VALUES (?, ?, ?, ?, ?, NULL)",
+                 [ts, "route-views6", "http://rv6/rib.bz2", 2000, "processed"])
+    count = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
+    assert count == 2

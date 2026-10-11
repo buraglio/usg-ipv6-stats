@@ -1,11 +1,26 @@
 import pytest
 import pyarrow.parquet as pq
 from unittest.mock import patch, MagicMock
-from usg_ipv6.pipeline.parse import parse_mrt
+from usg_ipv6.pipeline.parse import parse_mrt, _origin_asn
 
 TABLE_DUMP_V2 = 13
 RIB_IPV4_UNICAST = 2
 RIB_IPV6_UNICAST = 4
+
+
+def _make_rib_entry(origin_asn: int) -> dict:
+    """Return a rib_entry dict matching real mrtparse TABLE_DUMP_V2 output."""
+    return {
+        "path_attributes": [
+            {
+                "flag": 64,
+                "type": {2: "AS_PATH"},
+                "value": [
+                    {"type": {2: "AS_SEQUENCE"}, "value": [7018, origin_asn]},
+                ],
+            }
+        ]
+    }
 
 
 def _make_mock_entry(prefix, origin_asn, af):
@@ -16,13 +31,18 @@ def _make_mock_entry(prefix, origin_asn, af):
         "type": {TABLE_DUMP_V2: "TABLE_DUMP_V2"},
         "subtype": {subtype_key: "RIB"},
         "prefix": prefix,
-        "rib_entries": [{
-            "path_attributes": {
-                "as_path": [[origin_asn]],
-            }
-        }],
+        "rib_entries": [_make_rib_entry(origin_asn)],
     }
     return entry
+
+
+def test_origin_asn_parses_real_mrtparse_format():
+    rib_entry = _make_rib_entry(396260)
+    assert _origin_asn(rib_entry) == 396260
+
+
+def test_origin_asn_returns_none_when_no_as_path():
+    assert _origin_asn({"path_attributes": []}) is None
 
 
 @patch("usg_ipv6.pipeline.parse.Reader")

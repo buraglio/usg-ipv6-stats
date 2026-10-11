@@ -34,3 +34,12 @@ def test_fetch_asns_returns_empty_on_404():
     resp.add(resp.GET, "https://whois.arin.net/rest/org/DOESNOTEXIST/asns.json", status=404)
     result = fetch_asns_for_org("DOESNOTEXIST")
     assert result == []
+
+
+@resp.activate
+def test_retry_exhaustion_emits_warning():
+    for _ in range(3):
+        resp.add(resp.GET, "https://whois.arin.net/rest/org/USGSA/asns.json", status=429)
+    with pytest.warns(UserWarning, match="USGSA"):
+        result = fetch_asns_for_org("USGSA", max_retries=3)
+    assert result == []
