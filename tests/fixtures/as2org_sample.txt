@@ -1,0 +1,8 @@
+# format: aut|changed|aut_name|org_id|opaque_id|source
+# format: org|changed|name|country|org_id|source
+# start of aut lines
+396260|20200101|USGSA-AS|USGSA|a1b2c3|ARIN
+5722|20190615|NASA-AS|NASA-ARC|d4e5f6|ARIN
+# start of org lines
+USGSA|20200101|General Services Administration|US|a1b2c3|ARIN
+NASA-ARC|20190615|National Aeronautics and Space Administration|US|d4e5f6|ARIN
