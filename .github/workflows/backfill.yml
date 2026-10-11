@@ -1,0 +1,135 @@
+name: Backfill
+
+# Historical ingest. Processed snapshots are recorded in DuckDB and skipped
+# on re-runs, so long backfills are safely resumable — just trigger again if
+# the job hits the 6-hour GitHub Actions limit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: Start date (YYYY-MM-DD)
+        required: true
+        default: '2021-01-01'
+        type: string
+      until:
+        description: End date (YYYY-MM-DD, leave blank for today)
+        required: false
+        default: ''
+        type: string
+      collector:
+        description: RouteViews collector name
+        required: false
+        default: route-views2
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350   # just under GitHub's 6-hour job limit; re-run to continue
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Load corpus into DuckDB
+        run: |
+          if [ -f data/usg_asn_corpus.csv ]; then
+            echo "Loading corpus from committed CSV..."
+            uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          import csv
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+          conn.execute('DELETE FROM asn_corpus')
+
+          with open('data/usg_asn_corpus.csv') as f:
+              rows = list(csv.DictReader(f))
+
+          conn.executemany(
+              'INSERT INTO asn_corpus VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [(int(r['asn']), r['org_name'], r['agency'], r['tier'],
+                r['arin_org_handle'], r['confidence'], r['sources'],
+                r['last_verified'], r['corpus_version'])
+               for r in rows]
+          )
+          conn.close()
+          print(f'Loaded {len(rows)} ASNs into corpus')
+          PYEOF
+          else
+            echo "No corpus CSV found — building from ARIN + CAIDA..."
+            uv run python -m usg_ipv6.corpus.build \
+              --db data/usg_ipv6.duckdb \
+              --version "$(date +%Y-%m-%d)" \
+              --csv data/usg_asn_corpus.csv
+          fi
+
+      - name: Resolve date range
+        id: dates
+        run: |
+          SINCE="${{ inputs.since }}"
+          UNTIL="${{ inputs.until }}"
+          if [ -z "$UNTIL" ]; then
+            UNTIL=$(date +%Y-%m-%d)
+          fi
+          echo "since=${SINCE}" >> "$GITHUB_OUTPUT"
+          echo "until=${UNTIL}" >> "$GITHUB_OUTPUT"
+          echo "Backfill range: ${SINCE} → ${UNTIL}"
+
+      - name: Run backfill
+        run: |
+          SINCE="${{ steps.dates.outputs.since }}"
+          UNTIL="${{ steps.dates.outputs.until }}"
+          COLLECTOR="${{ inputs.collector || 'route-views2' }}"
+          uv run python << PYEOF
+          from usg_ipv6.pipeline.runner import run_backfill
+          from datetime import datetime
+          import json
+
+          result = run_backfill(
+              'data/usg_ipv6.duckdb',
+              '${COLLECTOR}',
+              since=datetime.fromisoformat('${SINCE}'),
+              until=datetime.fromisoformat('${UNTIL}'),
+          )
+          print(json.dumps(result, indent=2))
+          print(f"Processed {result['processed']} snapshots for ${COLLECTOR} "
+                f"from ${SINCE} to ${UNTIL}")
+          PYEOF
+
+      - name: Upload updated DuckDB (always — preserves partial progress)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then
+            echo "No DuckDB to upload — nothing was processed."
+            exit 0
+          fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Backfill from ${{ steps.dates.outputs.since }} to ${{ steps.dates.outputs.until }} (${{ inputs.collector || 'route-views2' }})." \
+               --prerelease \
+               --tag data-latest

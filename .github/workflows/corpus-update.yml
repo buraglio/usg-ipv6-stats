@@ -1,0 +1,76 @@
+name: Corpus Update
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'   # weekly, Sunday 06:00 UTC
+  workflow_dispatch:       # manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Build corpus (downloads CAIDA AS2Org automatically)
+        run: |
+          uv run python -m usg_ipv6.corpus.build \
+            --db data/usg_ipv6.duckdb \
+            --version "$(date +%Y-%m-%d)" \
+            --csv data/usg_asn_corpus.csv
+
+      - name: Check for CSV changes
+        id: changes
+        run: |
+          if git diff --quiet data/usg_asn_corpus.csv 2>/dev/null && \
+             git ls-files --error-unmatch data/usg_asn_corpus.csv 2>/dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="corpus-update/${DATE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/usg_asn_corpus.csv
+          git commit -m "chore: update USG ASN corpus ${DATE}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "Corpus update ${DATE}" \
+            --body "Automated weekly corpus refresh from ARIN WHOIS and CAIDA AS2Org.
+
+          Review the diff in \`data/usg_asn_corpus.csv\` before merging:
+          - New ASNs added to the corpus
+          - ASNs removed or reclassified
+          - Confidence level changes
+
+          Do not merge if any removals look incorrect — flag for manual verification." \
+            --base main \
+            --head "$BRANCH"
+
+      - name: No changes detected
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "Corpus is already up to date — no PR created."

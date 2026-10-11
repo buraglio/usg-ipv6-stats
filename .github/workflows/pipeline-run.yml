@@ -1,0 +1,108 @@
+name: Pipeline Run
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # weekly, Monday 10:00 UTC
+  workflow_dispatch:
+    inputs:
+      collector:
+        description: RouteViews collector name
+        required: false
+        default: route-views2
+        type: string
+      limit:
+        description: Maximum RIB snapshots to process per run
+        required: false
+        default: '6'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Load corpus into DuckDB
+        run: |
+          if [ -f data/usg_asn_corpus.csv ]; then
+            echo "Loading corpus from committed CSV..."
+            uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          import csv
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+          conn.execute('DELETE FROM asn_corpus')
+
+          with open('data/usg_asn_corpus.csv') as f:
+              rows = list(csv.DictReader(f))
+
+          conn.executemany(
+              'INSERT INTO asn_corpus VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [(int(r['asn']), r['org_name'], r['agency'], r['tier'],
+                r['arin_org_handle'], r['confidence'], r['sources'],
+                r['last_verified'], r['corpus_version'])
+               for r in rows]
+          )
+          conn.close()
+          print(f'Loaded {len(rows)} ASNs into corpus')
+          PYEOF
+          else
+            echo "No corpus CSV found — building from ARIN + CAIDA..."
+            mkdir -p data/raw
+            uv run python -m usg_ipv6.corpus.build \
+              --db data/usg_ipv6.duckdb \
+              --version "$(date +%Y-%m-%d)" \
+              --csv data/usg_asn_corpus.csv
+          fi
+
+      - name: Run incremental pipeline
+        run: |
+          COLLECTOR="${{ inputs.collector || 'route-views2' }}"
+          LIMIT="${{ inputs.limit || '6' }}"
+          uv run python << PYEOF
+          from usg_ipv6.pipeline.runner import run_incremental
+          import json, sys
+
+          result = run_incremental(
+              'data/usg_ipv6.duckdb',
+              '${COLLECTOR}',
+              limit=int('${LIMIT}'),
+          )
+          print(json.dumps(result, indent=2))
+          if result['processed'] == 0:
+              print('WARNING: no new snapshots processed — collector may be ahead of schedule', file=sys.stderr)
+          PYEOF
+
+      - name: Upload updated DuckDB to rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Rolling data release — latest processed RouteViews snapshots." \
+               --prerelease \
+               --tag data-latest

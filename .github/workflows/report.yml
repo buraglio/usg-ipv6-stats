@@ -1,0 +1,138 @@
+name: Report
+
+# Generates a summary statistics report from the current DuckDB data release
+# and writes it to the GitHub Actions job summary (visible in the workflow run UI).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Download DuckDB from rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p data
+          gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Generate report and write job summary
+        run: |
+          uv run python << 'PYEOF'
+          import duckdb, os
+
+          conn = duckdb.connect('data/usg_ipv6.duckdb')
+          summary_file = os.environ.get('GITHUB_STEP_SUMMARY', '/dev/stdout')
+
+          # --- Snapshot inventory ---
+          snap_rows = conn.execute("""
+              SELECT
+                  collector,
+                  COUNT(*) AS total_attempted,
+                  SUM(CASE WHEN status = 'processed' THEN 1 ELSE 0 END) AS processed,
+                  SUM(CASE WHEN status = 'failed'    THEN 1 ELSE 0 END) AS failed,
+                  MIN(snapshot_ts)::VARCHAR AS earliest,
+                  MAX(snapshot_ts)::VARCHAR AS latest
+              FROM snapshots
+              GROUP BY collector
+              ORDER BY collector
+          """).fetchall()
+
+          # --- Corpus size ---
+          corpus_total = conn.execute("SELECT COUNT(*) FROM asn_corpus").fetchone()[0]
+          corpus_by_tier = conn.execute("""
+              SELECT tier, confidence, COUNT(*) AS asns
+              FROM asn_corpus
+              GROUP BY tier, confidence
+              ORDER BY tier, confidence
+          """).fetchall()
+
+          # --- Latest prefix counts ---
+          latest_ts = conn.execute("SELECT MAX(snapshot_ts) FROM prefix_records").fetchone()[0]
+          if latest_ts:
+              prefix_rows = conn.execute("""
+                  SELECT
+                      c.tier,
+                      pr.af,
+                      COUNT(DISTINCT pr.prefix)     AS prefixes,
+                      COUNT(DISTINCT pr.origin_asn) AS asns
+                  FROM prefix_records pr
+                  JOIN asn_corpus c ON pr.origin_asn = c.asn
+                  WHERE pr.snapshot_ts = ?
+                  GROUP BY c.tier, pr.af
+                  ORDER BY c.tier, pr.af
+              """, [latest_ts]).fetchall()
+
+              # IPv4 vs IPv6 totals for all-USG
+              totals = conn.execute("""
+                  SELECT
+                      af,
+                      COUNT(DISTINCT prefix)     AS prefixes,
+                      COUNT(DISTINCT origin_asn) AS asns
+                  FROM prefix_records
+                  WHERE snapshot_ts = ?
+                  GROUP BY af ORDER BY af
+              """, [latest_ts]).fetchall()
+          else:
+              prefix_rows = []
+              totals = []
+
+          conn.close()
+
+          # --- Write markdown summary ---
+          with open(summary_file, 'w') as f:
+              f.write("## USG IPv6 Statistics Report\n\n")
+
+              f.write("### Snapshot Inventory\n\n")
+              f.write("| Collector | Attempted | Processed | Failed | Earliest | Latest |\n")
+              f.write("|-----------|-----------|-----------|--------|----------|--------|\n")
+              for row in snap_rows:
+                  f.write(f"| {row[0]} | {row[1]:,} | {row[2]:,} | {row[3]:,} | {row[4]} | {row[5]} |\n")
+              if not snap_rows:
+                  f.write("| — | No snapshot data found | | | | |\n")
+              f.write("\n")
+
+              f.write("### Corpus\n\n")
+              f.write(f"Total ASNs: **{corpus_total:,}**\n\n")
+              f.write("| Tier | Confidence | ASNs |\n")
+              f.write("|------|-----------|------|\n")
+              for row in corpus_by_tier:
+                  f.write(f"| {row[0]} | {row[1]} | {row[2]:,} |\n")
+              f.write("\n")
+
+              if latest_ts:
+                  f.write(f"### Prefix Counts at `{latest_ts}`\n\n")
+
+                  f.write("**All USG:**\n\n")
+                  f.write("| AF | Prefixes | ASNs |\n")
+                  f.write("|----|---------|------|\n")
+                  for row in totals:
+                      af_label = f"IPv{row[0]}"
+                      f.write(f"| {af_label} | {row[1]:,} | {row[2]:,} |\n")
+                  f.write("\n")
+
+                  f.write("**By tier and address family:**\n\n")
+                  f.write("| Tier | AF | Prefixes | ASNs |\n")
+                  f.write("|------|----|---------|------|\n")
+                  for row in prefix_rows:
+                      af_label = f"IPv{row[1]}"
+                      f.write(f"| {row[0]} | {af_label} | {row[2]:,} | {row[3]:,} |\n")
+                  f.write("\n")
+              else:
+                  f.write("### Prefix Records\n\nNo prefix records found — run the Pipeline Run workflow first.\n\n")
+
+          print("Report written to job summary.")
+          PYEOF
