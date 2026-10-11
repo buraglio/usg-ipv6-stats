@@ -1,0 +1,7 @@
+data/raw/
+data/usg_ipv6.duckdb
+*.pyc
+__pycache__/
+.venv/
+dist/
+.superpowers/

@@ -1,0 +1,31 @@
+[project]
+name = "usg-ipv6-stats"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=0.10",
+    "mrtparse>=2.0",
+    "requests>=2.31",
+    "rapidfuzz>=3.0",
+    "pyarrow>=15.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "responses>=0.25",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "responses>=0.25",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["usg_ipv6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
