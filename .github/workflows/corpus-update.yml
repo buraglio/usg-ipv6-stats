@@ -1,9 +1,16 @@
 name: Corpus Update
 
+# Rebuilds the USG ASN corpus from ARIN WHOIS and CAIDA AS2Org.
+#
+# Scheduled run (weekly):  opens a PR so changes can be reviewed before merge.
+# Manual run (workflow_dispatch): commits data/usg_asn_corpus.csv directly to
+#   main so the corpus is available immediately — use this for the initial
+#   bootstrap and for on-demand refreshes.
+
 on:
   schedule:
     - cron: '0 6 * * 0'   # weekly, Sunday 06:00 UTC
-  workflow_dispatch:       # manual trigger
+  workflow_dispatch:       # manual trigger — commits directly to main
 
 permissions:
   contents: write
@@ -28,7 +35,7 @@ jobs:
       - name: Create data directories
         run: mkdir -p data/raw
 
-      - name: Build corpus (downloads CAIDA AS2Org automatically)
+      - name: Build corpus (ARIN WHOIS + CAIDA AS2Org)
         run: |
           uv run python -m usg_ipv6.corpus.build \
             --db data/usg_ipv6.duckdb \
@@ -45,8 +52,26 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create pull request
-        if: steps.changes.outputs.changed == 'true'
+      - name: No changes detected
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "Corpus is already up to date — nothing to commit."
+
+      # Manual trigger: push directly to main so the CSV is available immediately.
+      # Pushing to main also fires publish.yml which creates the versioned release.
+      - name: Commit and push directly to main (manual trigger)
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/usg_asn_corpus.csv
+          git commit -m "chore: update USG ASN corpus ${DATE} (manual refresh)"
+          git push origin main
+          echo "Corpus committed to main. The Publish workflow will create a versioned release."
+
+      # Scheduled run: open a PR so corpus changes get reviewed before merge.
+      - name: Create pull request (scheduled run)
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -70,7 +95,3 @@ jobs:
           Do not merge if any removals look incorrect — flag for manual verification." \
             --base main \
             --head "$BRANCH"
-
-      - name: No changes detected
-        if: steps.changes.outputs.changed == 'false'
-        run: echo "Corpus is already up to date — no PR created."
