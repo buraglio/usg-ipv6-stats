@@ -171,27 +171,29 @@ jobs:
         # the corresponding RouteViews archive RIB dump, parses TABLE_DUMP_V2
         # records with mrtparse, writes Parquet, then loads prefix records into
         # DuckDB.  Snapshots already in the DB are skipped automatically.
+        env:
+          SINCE: ${{ steps.dates.outputs.since }}
+          UNTIL: ${{ steps.dates.outputs.until }}
+          COLLECTOR: ${{ inputs.collector || 'route-views2' }}
         run: |
-          SINCE="${{ steps.dates.outputs.since }}"
-          UNTIL="${{ steps.dates.outputs.until }}"
-          COLLECTOR="${{ inputs.collector || 'route-views2' }}"
-          uv run python << PYEOF
+          uv run python << 'PYEOF'
+          import json, os
           from usg_ipv6.pipeline.runner import run_backfill
           from datetime import datetime
-          import json
 
-          print(f"Backfilling MRT RIBs: collector=${COLLECTOR}  {SINCE} → ${UNTIL}")
+          since     = os.environ['SINCE']
+          until     = os.environ['UNTIL']
+          collector = os.environ['COLLECTOR']
+
+          print(f"Backfilling MRT RIBs: collector={collector}  {since} → {until}")
           result = run_backfill(
               'data/usg_ipv6.duckdb',
-              '${COLLECTOR}',
-              since=datetime.fromisoformat('${SINCE}'),
-              until=datetime.fromisoformat('${UNTIL}'),
+              collector,
+              since=datetime.fromisoformat(since),
+              until=datetime.fromisoformat(until),
           )
           print(json.dumps(result, indent=2))
-          print(
-              f"Processed {result['processed']} MRT RIB snapshot(s) for "
-              f"${COLLECTOR} ({SINCE} → ${UNTIL})"
-          )
+          print(f"Processed {result['processed']} MRT RIB snapshot(s) for {collector} ({since} → {until})")
           PYEOF
 
       - name: Upload updated DuckDB (always — preserves partial progress)
@@ -209,5 +211,4 @@ jobs:
           || gh release create data-latest data/usg_ipv6.duckdb \
                --title "Data: $(date +%Y-%m-%d)" \
                --notes "Backfill (${{ inputs.collector || 'route-views2' }}): ${{ steps.dates.outputs.since }} → ${{ steps.dates.outputs.until }}." \
-               --prerelease \
-               --tag data-latest
+               --prerelease

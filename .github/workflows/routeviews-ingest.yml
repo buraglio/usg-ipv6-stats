@@ -155,19 +155,19 @@ jobs:
         # run_incremental downloads each RIB dump (.bz2), parses TABLE_DUMP_V2
         # entries with mrtparse, writes a Parquet file, then normalises prefix
         # records into DuckDB.  Already-processed snapshots are skipped.
+        env:
+          COLLECTOR: ${{ inputs.collector || 'route-views2' }}
+          LIMIT: ${{ inputs.limit || '6' }}
         run: |
-          COLLECTOR="${{ inputs.collector || 'route-views2' }}"
-          LIMIT="${{ inputs.limit || '6' }}"
-          uv run python << PYEOF
+          uv run python << 'PYEOF'
+          import json, os, sys
           from usg_ipv6.pipeline.runner import run_incremental
-          import json, sys
 
-          print(f"Collector: ${COLLECTOR}  limit: ${LIMIT} snapshots")
-          result = run_incremental(
-              'data/usg_ipv6.duckdb',
-              '${COLLECTOR}',
-              limit=int('${LIMIT}'),
-          )
+          collector = os.environ['COLLECTOR']
+          limit     = int(os.environ['LIMIT'])
+
+          print(f"Collector: {collector}  limit: {limit} snapshots")
+          result = run_incremental('data/usg_ipv6.duckdb', collector, limit=limit)
           print(json.dumps(result, indent=2))
           if result['processed'] == 0:
               print(
@@ -176,7 +176,7 @@ jobs:
                   file=sys.stderr,
               )
           else:
-              print(f"Ingested {result['processed']} MRT RIB snapshot(s) for ${COLLECTOR}")
+              print(f"Ingested {result['processed']} MRT RIB snapshot(s) for {collector}")
           PYEOF
 
       - name: Upload updated DuckDB to rolling release
@@ -189,5 +189,4 @@ jobs:
           || gh release create data-latest data/usg_ipv6.duckdb \
                --title "Data: $(date +%Y-%m-%d)" \
                --notes "Rolling data release — latest RouteViews MRT snapshots for ${{ inputs.collector || 'route-views2' }}." \
-               --prerelease \
-               --tag data-latest
+               --prerelease
