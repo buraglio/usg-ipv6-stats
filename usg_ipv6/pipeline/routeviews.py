@@ -3,13 +3,20 @@ import duckdb
 from datetime import datetime
 from pathlib import Path
 
-RV_BASE = "http://archive.routeviews.org/{collector}/bgpdata/{year_month}/RIBS"
+# route-views2 (the original collector) lives at the archive root.
+# All other collectors have their name as a path prefix.
+_RV_BASE_DEFAULT = "http://archive.routeviews.org/bgpdata/{year_month}/RIBS"
+_RV_BASE_NAMED   = "http://archive.routeviews.org/{collector}/bgpdata/{year_month}/RIBS"
 
 
 def rib_url(collector: str, dt: datetime) -> str:
     year_month = dt.strftime("%Y.%m")
     filename = f"rib.{dt.strftime('%Y%m%d.%H%M')}.bz2"
-    return f"{RV_BASE.format(collector=collector, year_month=year_month)}/{filename}"
+    if collector == "route-views2":
+        base = _RV_BASE_DEFAULT.format(year_month=year_month)
+    else:
+        base = _RV_BASE_NAMED.format(collector=collector, year_month=year_month)
+    return f"{base}/{filename}"
 
 
 def _snapshot_ts(url: str) -> datetime:
@@ -18,16 +25,10 @@ def _snapshot_ts(url: str) -> datetime:
     return datetime.strptime(f"{parts[1]}.{parts[2]}", "%Y%m%d.%H%M")
 
 
-def _collector_from_url(url: str) -> str:
-    parts = url.split("/")
-    return parts[3] if len(parts) > 3 else "unknown"
-
-
 def fetch_rib(
-    url: str, dest_dir: str, conn: duckdb.DuckDBPyConnection
+    url: str, dest_dir: str, conn: duckdb.DuckDBPyConnection, *, collector: str
 ) -> str | None:
     snapshot_ts = _snapshot_ts(url)
-    collector = _collector_from_url(url)
 
     existing = conn.execute(
         "SELECT status FROM snapshots WHERE source_url = ?", [url]

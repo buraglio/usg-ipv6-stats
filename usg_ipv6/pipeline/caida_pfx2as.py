@@ -6,14 +6,16 @@ from pathlib import Path
 
 PFX2AS_URL = (
     "https://publicdata.caida.org/datasets/routing/routeviews-prefix2as/"
-    "{year}/{month}/routeviews-rv2-{date}-1200.pfx2as.gz"
+    "{year}/{month}/routeviews-{variant}-{date}-1200.pfx2as.gz"
 )
 
 
-def download_pfx2as(dest_dir: str, date: str) -> str:
+def download_pfx2as(dest_dir: str, date: str, variant: str = "rv2") -> str:
+    """Download a CAIDA pfx2as file. variant='rv2' for IPv4, 'rv6' for IPv6."""
     year, month, day = date.split("-")
-    url = PFX2AS_URL.format(year=year, month=month, date=f"{year}{month}{day}")
+    url = PFX2AS_URL.format(year=year, month=month, date=f"{year}{month}{day}", variant=variant)
     dest = Path(dest_dir) / url.split("/")[-1]
+    Path(dest_dir).mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True, timeout=60) as r:
         r.raise_for_status()
         with open(dest, "wb") as f:

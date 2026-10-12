@@ -129,26 +129,36 @@ jobs:
               conn.close()
               sys.exit(0)
 
-          # Try today, then fall back up to 7 days to handle publishing delays
-          downloaded = None
-          for days_back in range(8):
-              attempt = date.fromordinal(today.toordinal() - days_back)
-              try:
-                  downloaded = download_pfx2as('data/raw', attempt.isoformat())
-                  print(f"Downloaded CAIDA pfx2as for {attempt.isoformat()}")
-                  break
-              except Exception as e:
-                  print(f"  {attempt.isoformat()}: {e}", file=sys.stderr)
+          # Download both IPv4 (rv2) and IPv6 (rv6) pfx2as files.
+          # rv2 covers IPv4 prefixes; rv6 covers IPv6 prefixes (needed by Ark).
+          any_loaded = False
+          for variant, label in [("rv2", "IPv4"), ("rv6", "IPv6")]:
+              downloaded = None
+              for days_back in range(8):
+                  attempt = date.fromordinal(today.toordinal() - days_back)
+                  try:
+                      downloaded = download_pfx2as('data/raw', attempt.isoformat(), variant)
+                      print(f"Downloaded CAIDA pfx2as {label} ({variant}) for {attempt.isoformat()}")
+                      break
+                  except Exception as e:
+                      print(f"  {attempt.isoformat()} ({variant}): {e}", file=sys.stderr)
 
-          if downloaded is None:
-              print("WARNING: Could not download any CAIDA pfx2as file — "
-                    "caida_pfx2as table will not be updated this run", file=sys.stderr)
+              if downloaded is None:
+                  print(f"WARNING: Could not download {variant} pfx2as — "
+                        f"{label} prefix-to-ASN data will not be updated this run",
+                        file=sys.stderr)
+                  continue
+
+              n = load_pfx2as(downloaded, snapshot_date, conn)
+              print(f"Loaded {n:,} {label} pfx2as prefix records (snapshot_date={snapshot_date})")
+              any_loaded = True
+
+          if not any_loaded:
+              print("ERROR: Could not download any CAIDA pfx2as file.", file=sys.stderr)
               conn.close()
-              sys.exit(0)
+              sys.exit(1)
 
-          n = load_pfx2as(downloaded, snapshot_date, conn)
           conn.close()
-          print(f"Loaded {n:,} CAIDA pfx2as prefix records (snapshot_date={snapshot_date})")
           PYEOF
 
       - name: Fetch and parse RouteViews MRT RIB snapshots

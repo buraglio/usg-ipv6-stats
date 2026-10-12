@@ -39,7 +39,7 @@ def run_incremental(
             if processed >= limit:
                 break
             url = rib_url(collector, dt)
-            mrt_path = fetch_rib(url, tmp_dir, conn)
+            mrt_path = fetch_rib(url, tmp_dir, conn, collector=collector)
             if mrt_path is None:
                 continue
             parquet_path = mrt_path + ".parquet"
@@ -67,7 +67,7 @@ def run_backfill(
     with tempfile.TemporaryDirectory() as tmp_dir:
         for dt in candidates:
             url = rib_url(collector, dt)
-            mrt_path = fetch_rib(url, tmp_dir, conn)
+            mrt_path = fetch_rib(url, tmp_dir, conn, collector=collector)
             if mrt_path is None:
                 continue
             parquet_path = mrt_path + ".parquet"
