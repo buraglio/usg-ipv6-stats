@@ -1,10 +1,11 @@
 import csv
+import warnings
 from datetime import date
 from pathlib import Path
 
 from rapidfuzz import fuzz
 
-from usg_ipv6.corpus.arin import fetch_asns_for_org
+from usg_ipv6.corpus.arin import fetch_asns_for_org, arin_reachable
 from usg_ipv6.corpus.caida import parse_as2org
 from usg_ipv6.corpus.federal_agencies import CFO_ACT_AGENCIES
 from usg_ipv6.corpus.schema import AsnRecord, TIER_PRIORITY
@@ -42,6 +43,18 @@ def merge_sources(records: list[AsnRecord]) -> list[AsnRecord]:
 
 
 def _build_from_arin(version: str) -> list[AsnRecord]:
+    # Pre-flight: one fast connectivity check so we don't grind through
+    # 60+ org handles with full retry backoff if ARIN is blocking this host.
+    if not arin_reachable():
+        warnings.warn(
+            "ARIN WHOIS is unreachable from this host — skipping ARIN queries. "
+            "Corpus will be built from CAIDA data only. "
+            "Run locally or use a network that can reach whois.arin.net.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return []
+
     today = date.today().isoformat()
     records = []
     for agency in CFO_ACT_AGENCIES:
