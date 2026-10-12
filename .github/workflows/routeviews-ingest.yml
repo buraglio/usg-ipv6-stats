@@ -4,12 +4,16 @@ name: RouteViews MRT Ingest
 # TABLE_DUMP_V2 records, filters to USG-corpus ASNs, and stores
 # IPv4/IPv6 prefix records in DuckDB.
 #
-# Pipeline: fetch_rib → parse_mrt (Parquet) → load_parquet (DuckDB)
-# Orchestrated by: usg_ipv6/pipeline/runner.py::run_incremental
+# Full pipeline:
+#   1. Reload USG ASN corpus from committed CSV  → asn_corpus table
+#   2. Load CAIDA pfx2as (if not current month)  → caida_pfx2as table
+#   3. fetch_rib → parse_mrt → load_parquet      → prefix_records table
 #
 # DuckDB is too large for git; it lives in the rolling 'data-latest'
 # GitHub Release. Each run downloads the existing DB, appends new
 # snapshots (already-processed ones are skipped), and re-uploads.
+# The upload uses 'if: always()' so partial progress is preserved
+# even if a snapshot fails to parse.
 #
 # For historical backfill use the RouteViews MRT Backfill workflow.
 
@@ -95,6 +99,58 @@ jobs:
               --csv data/usg_asn_corpus.csv
           fi
 
+      - name: Load CAIDA prefix-to-ASN data into DuckDB
+        # Downloads the latest CAIDA routeviews-prefix2as file and loads it into
+        # the caida_pfx2as table. Skipped if data for the current month already
+        # exists, so re-runs within the same month don't re-download (~30 MB).
+        run: |
+          uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
+          from datetime import date
+          import os, sys
+
+          today = date.today()
+          snapshot_date = today.isoformat()
+          month_start = today.replace(day=1).isoformat()
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+
+          # Check if we already have data for this month
+          existing = conn.execute(
+              "SELECT COUNT(*) FROM caida_pfx2as WHERE snapshot_date >= ?",
+              [month_start],
+          ).fetchone()[0]
+
+          if existing > 0:
+              print(f"CAIDA pfx2as already loaded for {today.strftime('%Y-%m')} "
+                    f"({existing:,} rows) — skipping download")
+              conn.close()
+              sys.exit(0)
+
+          # Try today, then fall back up to 7 days to handle publishing delays
+          downloaded = None
+          for days_back in range(8):
+              attempt = date.fromordinal(today.toordinal() - days_back)
+              try:
+                  downloaded = download_pfx2as('data/raw', attempt.isoformat())
+                  print(f"Downloaded CAIDA pfx2as for {attempt.isoformat()}")
+                  break
+              except Exception as e:
+                  print(f"  {attempt.isoformat()}: {e}", file=sys.stderr)
+
+          if downloaded is None:
+              print("WARNING: Could not download any CAIDA pfx2as file — "
+                    "caida_pfx2as table will not be updated this run", file=sys.stderr)
+              conn.close()
+              sys.exit(0)
+
+          n = load_pfx2as(downloaded, snapshot_date, conn)
+          conn.close()
+          print(f"Loaded {n:,} CAIDA pfx2as prefix records (snapshot_date={snapshot_date})")
+          PYEOF
+
       - name: Fetch and parse RouteViews MRT RIB snapshots
         # run_incremental downloads each RIB dump (.bz2), parses TABLE_DUMP_V2
         # entries with mrtparse, writes a Parquet file, then normalises prefix
@@ -124,6 +180,8 @@ jobs:
           PYEOF
 
       - name: Upload updated DuckDB to rolling release
+        # if: always() preserves corpus + pfx2as progress even if MRT parsing fails
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
