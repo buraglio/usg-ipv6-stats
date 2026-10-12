@@ -196,6 +196,7 @@ def prefixes(
         FROM prefix_records pr
         LEFT JOIN asn_corpus c ON pr.origin_asn = c.asn
         WHERE {' AND '.join(clauses)}
+        GROUP BY pr.prefix, pr.af, pr.origin_asn, c.agency, c.tier
         ORDER BY pr.af, pr.prefix
         LIMIT ?
     """, params + [limit]).fetchall()
