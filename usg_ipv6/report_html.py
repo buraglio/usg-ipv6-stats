@@ -119,6 +119,87 @@ def _rows(headers: list[str], body_html: str) -> str:
 </table></div>"""
 
 
+def _ark_reachability_section(conn) -> str:
+    """Generate HTML for the Ark reachability section, or a placeholder."""
+    count = conn.execute("SELECT COUNT(*) FROM ark_reachability").fetchone()[0]
+    if count == 0:
+        return """
+        <section id="ark">
+          <h2>IPv6 Reachability (CAIDA Ark)</h2>
+          <p class="muted" style="color:var(--muted)">Ark reachability data not yet loaded.
+          Run <code>usg ark ingest</code> or trigger the Ark Ingest workflow.</p>
+        </section>
+        """
+
+    mdate = conn.execute(
+        "SELECT MAX(measurement_date) FROM ark_reachability"
+    ).fetchone()[0]
+    pfx2as_date = conn.execute(
+        "SELECT pfx2as_snapshot_date FROM ark_reachability "
+        "WHERE measurement_date = ? LIMIT 1", [mdate]
+    ).fetchone()[0]
+
+    totals = conn.execute("""
+        SELECT
+          COUNT(*) FILTER (WHERE ipv6_reachable = TRUE  AND prefixes_in_scope > 0),
+          COUNT(*) FILTER (WHERE ipv6_reachable = FALSE AND prefixes_in_scope > 0),
+          COUNT(*) FILTER (WHERE prefixes_in_scope = 0)
+        FROM ark_reachability WHERE measurement_date = ?
+    """, [mdate]).fetchone()
+
+    gap_rows = conn.execute("""
+        SELECT ar.asn, c.agency, c.tier, ar.addresses_observed, ar.prefixes_in_scope
+        FROM ark_reachability ar
+        JOIN asn_corpus c ON ar.asn = c.asn
+        WHERE ar.measurement_date = ?
+          AND ar.ipv6_reachable = FALSE AND ar.prefixes_in_scope > 0
+        ORDER BY c.tier, c.agency
+    """, [mdate]).fetchall()
+
+    reachable, not_reachable, indet = totals
+    gap_rows_html = "".join(
+        f"<tr><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td>"
+        f"<td class='num'>{r[3]}</td><td class='num'>{r[4]}</td></tr>"
+        for r in gap_rows
+    )
+    if gap_rows:
+        gap_table = _rows(
+            ["ASN", "Agency", "Tier", "Addresses Observed", "Prefixes in Scope"],
+            gap_rows_html,
+        )
+    else:
+        gap_table = "<p style='color:var(--muted)'>No gap ASNs — all assessed ASNs are reachable.</p>"
+
+    return f"""
+    <section id="ark">
+      <h2>IPv6 Reachability (CAIDA Ark)</h2>
+      <p style="color:var(--muted);margin-bottom:1rem;font-size:0.9rem">
+        Measurement date: <strong>{mdate}</strong> &nbsp;|&nbsp;
+        pfx2as attribution: <strong>{pfx2as_date}</strong>
+      </p>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="label">Reachable</div>
+          <div class="value" style="color:#1a7f37">{reachable}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Not Reachable</div>
+          <div class="value" style="color:#cf222e">{not_reachable}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Indeterminate</div>
+          <div class="value" style="color:#9a6700">{indet}</div>
+          <div class="sub">no pfx2as IPv6 prefixes</div>
+        </div>
+      </div>
+      <h3 style="margin-top:1.5rem;margin-bottom:0.75rem;font-size:1rem;font-weight:600">
+        Gap: BGP IPv6 announced but not Ark-reachable
+      </h3>
+      {gap_table}
+    </section>
+    """
+
+
 def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     import duckdb
 
@@ -127,7 +208,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
     if not Path(db_path).exists():
-        html = _page(generated_at, None, 0, [], [], [], [])
+        html = _page(generated_at, None, 0, [], [], [], [], "")
         Path(out_path).write_text(html, encoding="utf-8")
         print(f"No DuckDB found — wrote placeholder to {out_path}")
         return
@@ -177,10 +258,11 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     else:
         totals, by_tier = [], []
 
+    ark_section = _ark_reachability_section(conn)
     conn.close()
 
     html = _page(generated_at, latest_ts, corpus_count, corpus_rows,
-                 snap_rows, totals, by_tier)
+                 snap_rows, totals, by_tier, ark_section)
     Path(out_path).write_text(html, encoding="utf-8")
     print(f"Report written to {out_path}")
 
@@ -193,6 +275,7 @@ def _page(
     snap_rows: list,
     totals: list,
     by_tier: list,
+    ark_section: str = "",
 ) -> str:
     snap_label = f"Snapshot: {latest_ts}" if latest_ts else "No routing data yet"
 
@@ -311,6 +394,8 @@ def _page(
   <h2>Snapshot Inventory</h2>
   {snap_tbl}
 </section>
+
+{ark_section}
 
 <section id="corpus">
   <h2>ASN Corpus ({corpus_count:,} ASNs)</h2>
