@@ -6,4 +6,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 dist/
-docs/
+docs/_build/
+docs/_site/

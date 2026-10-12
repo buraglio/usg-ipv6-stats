@@ -2,6 +2,8 @@
 
 Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Government Autonomous Systems. Uses RouteViews BGP route table dumps as the primary data source, corroborated by CAIDA datasets. Motivated by [OMB Memorandum M-21-07](https://www.whitehouse.gov/wp-content/uploads/2020/11/M-21-07.pdf), which directed federal agencies to adopt IPv6-only networking by FY2025.
 
+**Live dashboard:** [buraglio.github.io/usg-ipv6-stats](https://buraglio.github.io/usg-ipv6-stats/) — rebuilt automatically after every ingest run.
+
 ---
 
 ## Table of contents
@@ -9,7 +11,9 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Typical workflow](#typical-workflow)
+- [CLI reference](#cli-reference)
 - [Make targets](#make-targets)
+- [GitHub Actions](#github-actions)
 - [Corpus build](#corpus-build)
 - [Pipeline: incremental run](#pipeline-incremental-run)
 - [Pipeline: backfill](#pipeline-backfill)
@@ -43,13 +47,11 @@ cd usg-ipv6-stats
 make setup
 ```
 
-`make setup` runs `uv sync`, which creates a local `.venv`, installs all runtime and dev dependencies from `uv.lock`, and makes the `usg_ipv6` package importable. No manual `pip install` or `python -m venv` steps are needed.
+`make setup` runs `uv sync`, which creates a local `.venv`, installs all runtime and dev dependencies from `uv.lock`, and registers the `usg` CLI command. No manual `pip install` or `python -m venv` steps are needed.
 
 ---
 
 ## Typical workflow
-
-The three-step sequence for a fresh analysis run:
 
 ```bash
 # 1. Build (or refresh) the USG ASN corpus
@@ -58,26 +60,114 @@ make corpus
 # 2. Process the most recent available RIB snapshot
 make run
 
-# 3. Query the database directly
-uv run python -c "
-import duckdb
-conn = duckdb.connect('data/usg_ipv6.duckdb')
-conn.execute('''
-    SELECT af, COUNT(DISTINCT prefix) AS prefixes, COUNT(DISTINCT origin_asn) AS asns
-    FROM prefix_records
-    GROUP BY af ORDER BY af
-''').fetchdf()
-"
+# 3. Query with the CLI
+uv run usg stats
+uv run usg corpus --tier cfo_act
+uv run usg prefixes --af 6
 ```
 
-For historical analysis, replace step 2 with `make backfill`.
+For historical analysis, replace step 2 with `make backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
+
+---
+
+## CLI reference
+
+The `usg` command is the primary interface for querying the database and running the pipeline.
+
+```text
+uv run usg [COMMAND] [OPTIONS]
+```
+
+All query commands default `--db` to `data/usg_ipv6.duckdb` and accept `--json` for machine-readable output.
+
+### `usg stats`
+
+IPv4/IPv6 prefix and ASN summary for the most recent snapshot.
+
+```bash
+uv run usg stats
+uv run usg stats --json
+uv run usg stats --db /path/to/other.duckdb
+```
+
+Example output:
+
+```text
+Snapshot : 2026-10-12 14:00:00
+Corpus   : 72 ASNs
+
+All USG:
+AF    Prefixes  ASNs
+----  --------  ----
+IPv4  740       35
+
+By tier:
+Tier     AF    Prefixes  ASNs
+-------  ----  --------  ----
+cfo_act  IPv4  740       35
+```
+
+### `usg corpus`
+
+List ASNs in the corpus, with optional filters.
+
+```bash
+uv run usg corpus                          # all ASNs
+uv run usg corpus --agency "State"         # partial agency name match
+uv run usg corpus --tier cfo_act           # filter by tier
+uv run usg corpus --asn 11974              # look up a single ASN
+uv run usg corpus --json | jq '.[] | .asn' # pipe to jq
+```
+
+### `usg prefixes`
+
+List distinct prefix records for a snapshot, optionally filtered.
+
+```bash
+uv run usg prefixes                        # latest snapshot, first 50 rows
+uv run usg prefixes --af 6                 # IPv6 only
+uv run usg prefixes --af 4 --tier cfo_act  # IPv4, CFO Act agencies
+uv run usg prefixes --asn 270              # prefixes for a single ASN
+uv run usg prefixes --limit 200            # increase row limit
+uv run usg prefixes --snapshot "2024-03-15 08:00:00"  # a specific snapshot
+```
+
+### `usg snapshots`
+
+List processed RIB snapshots.
+
+```bash
+uv run usg snapshots                          # most recent 50
+uv run usg snapshots --collector route-views6 # specific collector
+uv run usg snapshots --status processed       # only successful runs
+uv run usg snapshots --limit 200
+```
+
+### `usg run ingest`
+
+Fetch and process recent RIB snapshots (incremental).
+
+```bash
+uv run usg run ingest
+uv run usg run ingest --collector route-views6
+uv run usg run ingest --limit 6       # fetch up to 6 snapshots
+```
+
+### `usg run backfill`
+
+Fetch and process RIB snapshots between two dates (inclusive). Already-processed snapshots are skipped automatically, so backfills are resumable.
+
+```bash
+uv run usg run backfill 2024-01-01 2024-12-31
+uv run usg run backfill 2021-01-01 2024-12-31 --collector route-views6
+```
 
 ---
 
 ## Make targets
 
 | Target | Description |
-|--------|-------------|
+| -------- | ------------- |
 | `make setup` | Install all dependencies via `uv sync` |
 | `make corpus` | Build the USG ASN corpus (ARIN + CAIDA) |
 | `make run` | Fetch and process the most recent RIB snapshot |
@@ -89,6 +179,54 @@ All targets accept variable overrides on the command line (see [Configuration va
 
 ---
 
+## GitHub Actions
+
+Five workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
+
+### Corpus Update (`corpus-update.yml`)
+
+Rebuilds the USG ASN corpus from ARIN WHOIS and CAIDA AS2Org.
+
+- **Manual dispatch** (`workflow_dispatch`): commits `data/usg_asn_corpus.csv` directly to `main`. Use this for the initial bootstrap and on-demand refreshes.
+- **Scheduled** (Sundays 06:00 UTC): opens a pull request so changes can be reviewed before merge.
+
+ARIN WHOIS is blocked from GitHub Actions IP ranges; the workflow automatically falls back to CAIDA-only corpus building when ARIN is unreachable.
+
+### RouteViews MRT Ingest (`routeviews-ingest.yml`)
+
+Downloads BGP MRT RIB dumps from a RouteViews collector, parses TABLE_DUMP_V2 records, and stores IPv4/IPv6 prefix records in DuckDB.
+
+- **Scheduled**: weekly, Monday 10:00 UTC
+- **Manual dispatch**: accepts `collector` and `limit` inputs
+
+The DuckDB file is too large for git; it lives in the rolling `data-latest` GitHub Release. Each run downloads the existing DB, appends new snapshots, and re-uploads.
+
+**Pipeline steps:**
+
+1. Reload USG ASN corpus from committed `data/usg_asn_corpus.csv` → `asn_corpus` table
+2. Download latest CAIDA pfx2as (monthly cadence, skipped if current month already loaded) → `caida_pfx2as` table
+3. `fetch_rib → parse_mrt → load_parquet` → `prefix_records` table
+
+### RouteViews MRT Backfill (`routeviews-backfill.yml`)
+
+Historical ingest over a user-supplied date range. Accepts `since`, `until`, and `collector` inputs. Runs up to the 6-hour GitHub Actions job limit; re-trigger to continue — processed snapshots are skipped automatically.
+
+### Publish (`publish.yml`)
+
+Runs on every push to `main`. Creates a versioned `corpus-YYYY-MM-DD` GitHub Release with `data/usg_asn_corpus.csv` attached.
+
+### Deploy GitHub Pages (`pages.yml`)
+
+Generates the static HTML dashboard and deploys to GitHub Pages.
+
+- Triggers: after each RouteViews MRT Ingest run, on push to `main`, and on manual dispatch
+- Downloads the DuckDB from `data-latest`, runs `usg_ipv6.report_html`, deploys `web/index.html`
+- Degrades gracefully: if no DuckDB exists yet, deploys a placeholder page
+
+**One-time setup:** Settings → Pages → Source → **GitHub Actions**
+
+---
+
 ## Corpus build
 
 The corpus maps ASN numbers to federal agencies and tiers. It is the filter that determines which BGP routes are stored as USG data.
@@ -97,16 +235,10 @@ The corpus maps ASN numbers to federal agencies and tiers. It is the filter that
 make corpus
 ```
 
-Or with explicit overrides:
-
-```bash
-make corpus DB_PATH=data/usg_ipv6.duckdb AS2ORG=data/raw/20240101.as-org2info.txt.gz
-```
-
 **What it does:**
 
-1. Queries ARIN WHOIS REST API for ASNs registered to each of the 24 CFO Act agencies (seed handles in `usg_ipv6/corpus/federal_agencies.py`).
-2. Downloads the most recent quarterly CAIDA AS2Org file if `AS2ORG` is not specified, or parses a local copy if it is.
+1. Queries ARIN WHOIS REST API for ASNs registered to each of the 24 CFO Act agencies. If ARIN is unreachable (e.g. from GitHub Actions IP ranges), this step is skipped and only CAIDA data is used.
+2. Downloads the most recent CAIDA AS2Org file (published on the 1st of each month). Walks back up to 6 months to find the latest available file.
 3. Fuzzy-matches CAIDA organization names against the agency list (threshold: 85/100) to catch ASNs that ARIN registration alone would miss.
 4. Deduplicates by ASN, keeping the most-specific tier when an ASN appears in multiple sources.
 5. Writes `data/usg_asn_corpus.csv` and loads the `asn_corpus` table in the DuckDB file.
@@ -114,34 +246,29 @@ make corpus DB_PATH=data/usg_ipv6.duckdb AS2ORG=data/raw/20240101.as-org2info.tx
 **Tier hierarchy (most to least specific):**
 
 | Tier | Agencies |
-|------|----------|
-| `cfo_act` | 23 CFO Act civilian agencies |
+| ------ | ---------- |
+| `cfo_act` | 24 CFO Act civilian agencies |
 | `dod` | Department of Defense |
 | `federal_civilian` | Other federal entities (CAIDA-discovered only) |
 
 **Confidence levels:**
 
 | Level | Source |
-|-------|--------|
+| ------- | -------- |
 | `high` | ARIN WHOIS (authoritative registration) |
 | `medium` | CAIDA AS2Org fuzzy match |
 
-**Corpus outputs:**
-
-- `data/usg_asn_corpus.csv` — human-readable snapshot
-- `data/usg_ipv6.duckdb` → `asn_corpus` table — used by the pipeline
-
-**To refresh the corpus** without re-downloading AS2Org:
+**To supply a local AS2Org file instead of downloading:**
 
 ```bash
-make corpus AS2ORG=data/raw/20240101.as-org2info.txt.gz
+make corpus AS2ORG=data/raw/20241001.as-org2info.txt.gz
 ```
 
 **To download AS2Org manually:**
 
 ```python
 from usg_ipv6.corpus.caida import download_as2org
-path = download_as2org("data/raw")
+path = download_as2org("data/raw")   # probes the last 6 months, takes the most recent
 print(path)
 ```
 
@@ -153,37 +280,21 @@ Fetches and processes the most recent RIB snapshot not already in the database.
 
 ```bash
 make run
-```
-
-Or targeting a specific collector:
-
-```bash
 make run COLLECTOR=route-views6
 ```
 
 **What it does:**
 
 1. Generates candidate RIB timestamps at 2-hour intervals over the past 7 days, most recent first.
-2. Constructs the RouteViews archive URL for each candidate (`http://archive.routeviews.org/{collector}/bgpdata/{YYYY.MM}/RIBS/rib.{YYYYMMDD.HHMM}.bz2`).
-3. Skips snapshots already recorded with `status='processed'` in the `snapshots` table.
-4. Downloads the MRT bz2 file, validating `Content-Length` to detect partial downloads.
-5. Parses the MRT TABLE_DUMP_V2 records with `mrtparse`, extracts `(prefix, origin_asn, prefix_len, af)` tuples, and filters out IPv4-mapped IPv6 prefixes (`::ffff:0:0/96`, `64:ff9b::/96`, `64:ff9b:1::/48`).
-6. Writes an intermediate Parquet file, then loads only rows whose `origin_asn` appears in `asn_corpus` into the `prefix_records` table.
-7. Updates the `snapshots` row to `status='processed'`.
-8. Prints a JSON result: `{"processed": N}`.
+2. Skips snapshots already recorded with `status='processed'` in the `snapshots` table.
+3. Downloads the MRT bz2 file from the RouteViews archive.
+4. Parses TABLE_DUMP_V2 records with `mrtparse`, extracts `(prefix, origin_asn, prefix_len, af)` tuples, filters IPv4-mapped IPv6 prefixes, and writes an intermediate Parquet file.
+5. Loads only rows whose `origin_asn` appears in `asn_corpus` into `prefix_records`.
 
-**Output example:**
-
-```json
-{"processed": 1}
-```
-
-**Collectors available on RouteViews:**
-
-The default is `route-views2` (the primary route-views collector). Other useful collectors:
+**Available collectors:**
 
 | Collector | Notes |
-|-----------|-------|
+| ----------- | ------- |
 | `route-views2` | Default; full global table |
 | `route-views6` | IPv6-only peers |
 | `route-views.linx` | London peering exchange |
@@ -195,46 +306,26 @@ Full list at [archive.routeviews.org](http://archive.routeviews.org).
 
 ## Pipeline: backfill
 
-Processes all available RIB snapshots in a date range. Skips any snapshot already recorded as processed.
+Processes all available RIB snapshots in a date range. Already-processed snapshots are skipped, so backfills are resumable.
 
 ```bash
 make backfill SINCE=2021-01-01 UNTIL=2024-12-31
+make backfill SINCE=2021-01-01 UNTIL=2024-12-31 COLLECTOR=route-views6
 ```
 
-Or with all variables explicit:
-
-```bash
-make backfill \
-  DB_PATH=data/usg_ipv6.duckdb \
-  COLLECTOR=route-views2 \
-  SINCE=2020-11-01 \
-  UNTIL=2024-12-31
-```
-
-RouteViews publishes snapshots every 2 hours, so a full-year backfill is approximately 4,380 MRT files (~300–500 MB each compressed). Budget disk space and time accordingly. The pipeline skips already-processed snapshots, so backfills are resumable.
-
-**Estimating backfill size:**
-
-```python
-from datetime import datetime
-since = datetime(2021, 1, 1)
-until = datetime(2024, 12, 31)
-days = (until - since).days
-snapshots = days * 12  # 12 two-hour slots per day
-print(f"{snapshots:,} snapshots ({snapshots * 350 / 1024:.0f} GB uncompressed estimate)")
-```
+RouteViews publishes snapshots every 2 hours (12 per day). A full year is ~4,380 MRT files.
 
 ---
 
 ## Database schema
 
-The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tables are created automatically on first run.
+The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tables are created automatically on first run. ASN columns use `BIGINT` to accommodate the full 32-bit unsigned ASN range (0–4,294,967,295).
 
 ### `asn_corpus`
 
 | Column | Type | Description |
-|--------|------|-------------|
-| `asn` | INTEGER PK | Autonomous System Number |
+| -------- | ------ | ------------- |
+| `asn` | BIGINT PK | Autonomous System Number |
 | `org_name` | VARCHAR | Organization name from ARIN or CAIDA |
 | `agency` | VARCHAR | Matched CFO Act agency name |
 | `tier` | VARCHAR | `cfo_act`, `dod`, or `federal_civilian` |
@@ -249,7 +340,7 @@ The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tabl
 Tracks every MRT file that has been downloaded or attempted.
 
 | Column | Type | Description |
-|--------|------|-------------|
+| -------- | ------ | ------------- |
 | `snapshot_ts` | TIMESTAMP | RIB timestamp (PK with `collector`) |
 | `collector` | VARCHAR | RouteViews collector name (PK with `snapshot_ts`) |
 | `source_url` | VARCHAR | Full download URL |
@@ -259,39 +350,39 @@ Tracks every MRT file that has been downloaded or attempted.
 
 ### `prefix_records`
 
-One row per (snapshot, prefix, origin ASN) tuple — the core analytical table.
+One row per (snapshot, peer, prefix, origin ASN) — the core analytical table.
 
 | Column | Type | Description |
-|--------|------|-------------|
+| -------- | ------ | ------------- |
 | `snapshot_ts` | TIMESTAMP | Source snapshot timestamp |
 | `collector` | VARCHAR | Source collector |
-| `peer_asn` | INTEGER | BGP peer ASN (0 in Phase 1 — not yet extracted) |
+| `peer_asn` | BIGINT | BGP peer ASN (0 in current build — reserved) |
 | `prefix` | VARCHAR | CIDR prefix string |
-| `origin_asn` | INTEGER | Origin AS from AS_PATH |
+| `origin_asn` | BIGINT | Origin AS from AS_PATH |
 | `prefix_len` | INTEGER | Prefix length |
 | `af` | INTEGER | Address family: 4 or 6 |
 
 ### `caida_pfx2as`
 
-Corroborating prefix-to-ASN data from CAIDA RouteViews pfx2as.
+Corroborating prefix-to-ASN mapping from CAIDA RouteViews pfx2as.
 
 | Column | Type | Description |
-|--------|------|-------------|
+| -------- | ------ | ------------- |
 | `snapshot_date` | DATE | Date of the pfx2as file |
 | `prefix` | VARCHAR | CIDR prefix string |
 | `prefix_len` | INTEGER | Prefix length |
-| `asn` | INTEGER | Origin ASN |
+| `asn` | BIGINT | Origin ASN |
 | `af` | INTEGER | Address family: 4 or 6 |
 
 ### `ark_reachability`
 
-Reserved for CAIDA Ark IPv6 Topology reachability data (Phase 2).
+Reserved for CAIDA Ark active-measurement reachability data (Phase 2).
 
 | Column | Type | Description |
-|--------|------|-------------|
+| -------- | ------ | ------------- |
 | `measurement_date` | DATE | Date of measurement |
-| `asn` | INTEGER | ASN |
-| `ipv6_reachable` | BOOLEAN | Whether IPv6 was reachable |
+| `asn` | BIGINT | ASN |
+| `ipv6_reachable` | BOOLEAN | Whether IPv6 was reachable from Ark vantage points |
 
 **Example queries:**
 
@@ -310,12 +401,25 @@ WHERE pr.snapshot_ts = (SELECT MAX(snapshot_ts) FROM prefix_records)
 GROUP BY c.agency, pr.af
 ORDER BY af, prefixes DESC;
 
--- Trend: IPv6 adoption over time
+-- Trend: IPv6 adoption over time (monthly)
 SELECT DATE_TRUNC('month', snapshot_ts) AS month,
        COUNT(DISTINCT CASE WHEN af = 6 THEN prefix END) AS v6_prefixes,
        COUNT(DISTINCT CASE WHEN af = 4 THEN prefix END) AS v4_prefixes
 FROM prefix_records
 GROUP BY 1 ORDER BY 1;
+
+-- ASNs announcing IPv4 but not IPv6 (potential adoption gap)
+SELECT c.agency, c.asn, c.org_name
+FROM asn_corpus c
+WHERE c.asn IN (
+    SELECT DISTINCT origin_asn FROM prefix_records
+    WHERE af = 4 AND snapshot_ts = (SELECT MAX(snapshot_ts) FROM prefix_records)
+)
+AND c.asn NOT IN (
+    SELECT DISTINCT origin_asn FROM prefix_records
+    WHERE af = 6 AND snapshot_ts = (SELECT MAX(snapshot_ts) FROM prefix_records)
+)
+ORDER BY c.agency;
 ```
 
 ---
@@ -328,15 +432,16 @@ All functionality is importable as a library.
 
 ```python
 from usg_ipv6.corpus.build import build_corpus
-from usg_ipv6.corpus.caida import download_as2org, parse_as2org
-from usg_ipv6.corpus.arin import fetch_asns_for_org
+from usg_ipv6.corpus.caida import download_as2org
+from usg_ipv6.corpus.arin import fetch_asns_for_org, arin_reachable
 
-# Download latest AS2Org file and build corpus
+# Check ARIN reachability before attempting queries
+if arin_reachable():
+    asns = fetch_asns_for_org("USGSA")
+
+# Download latest AS2Org file (probes last 6 months)
 as2org_path = download_as2org("data/raw")
 csv_path = build_corpus("data/usg_ipv6.duckdb", as2org_path, version="2024-01-01")
-
-# Query ARIN directly
-asns = fetch_asns_for_org("USGSA")  # returns [396260, ...]
 ```
 
 ### Pipeline
@@ -345,11 +450,9 @@ asns = fetch_asns_for_org("USGSA")  # returns [396260, ...]
 from datetime import datetime
 from usg_ipv6.pipeline.runner import run_incremental, run_backfill
 
-# Process the most recent snapshot
 result = run_incremental("data/usg_ipv6.duckdb", "route-views2", limit=1)
 print(result)  # {"processed": 1}
 
-# Backfill a range
 result = run_backfill(
     "data/usg_ipv6.duckdb",
     "route-views2",
@@ -367,35 +470,16 @@ from usg_ipv6.db import get_connection, init_schema
 
 conn = get_connection("data/usg_ipv6.duckdb")
 init_schema(conn)  # idempotent — safe to call on an existing DB
-
 df = conn.execute("SELECT * FROM prefix_records LIMIT 10").fetchdf()
 conn.close()
 ```
 
-### Low-level pipeline steps
+### Report generation
 
 ```python
-from usg_ipv6.pipeline.routeviews import rib_url, fetch_rib
-from usg_ipv6.pipeline.parse import parse_mrt
-from usg_ipv6.pipeline.normalize import load_parquet
-from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
-from datetime import datetime
+from usg_ipv6.report_html import generate
 
-conn = get_connection("data/usg_ipv6.duckdb")
-
-# Fetch a specific snapshot
-url = rib_url("route-views2", datetime(2024, 3, 15, 8, 0))
-mrt_path = fetch_rib(url, "data/raw", conn)       # returns path or None (skip/fail)
-
-# Parse to Parquet
-count = parse_mrt(mrt_path, "data/raw/out.parquet")
-
-# Filter to corpus ASNs and load
-loaded = load_parquet("data/raw/out.parquet", datetime(2024, 3, 15, 8, 0), "route-views2", conn)
-
-# Load CAIDA pfx2as corroborating data
-pfx2as_path = download_pfx2as("data/raw", "2024-03-15")
-load_pfx2as(pfx2as_path, "2024-03-15", conn)
+generate("data/usg_ipv6.duckdb", "web/index.html")
 ```
 
 ---
@@ -403,27 +487,25 @@ load_pfx2as(pfx2as_path, "2024-03-15", conn)
 ## Data sources
 
 | Source | Used for | Access |
-|--------|----------|--------|
+| -------- | ---------- | -------- |
 | [RouteViews](http://archive.routeviews.org) | MRT RIB dumps (primary) | Public HTTP, no auth |
 | [CAIDA RouteViews pfx2as](https://publicdata.caida.org/datasets/routing/routeviews-prefix2as/) | Prefix-to-ASN corroboration | Public HTTP, no auth |
-| [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping | Public HTTP, no auth |
+| [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping (published 1st of each month) | Public HTTP, no auth |
 | [ARIN WHOIS REST API](https://www.arin.net/resources/registry/whois/rws/api/) | Authoritative ASN registration | Public REST API, no auth |
 
-ARIN's API applies rate limits; the client backs off exponentially on HTTP 429 and emits a warning if all retries are exhausted.
+**ARIN in CI:** ARIN WHOIS is unreachable from GitHub Actions IP ranges. A fast pre-flight check (`arin_reachable()`) detects this and skips ARIN queries rather than burning through retries, falling back to CAIDA-only corpus building.
 
 ---
 
 ## Configuration variables
 
-All Makefile variables can be overridden on the command line.
-
 | Variable | Default | Description |
-|----------|---------|-------------|
+| ---------- | --------- | ------------- |
 | `DB_PATH` | `data/usg_ipv6.duckdb` | Path to the DuckDB analytical store |
 | `COLLECTOR` | `route-views2` | RouteViews collector name |
 | `SINCE` | `2021-01-01` | Backfill start date (ISO 8601) |
 | `UNTIL` | `2024-12-31` | Backfill end date (ISO 8601) |
-| `AS2ORG` | `data/as2org.txt.gz` | Path to a local CAIDA AS2Org file; auto-downloaded if missing |
+| `AS2ORG` | _(empty — auto-download)_ | Path to a local CAIDA AS2Org file; if unset, the most recent monthly file is downloaded automatically |
 
 ---
 
@@ -432,18 +514,27 @@ All Makefile variables can be overridden on the command line.
 ```text
 usg_ipv6/
   db.py                  # DuckDB connection and schema initialisation
+  cli.py                 # usg CLI (typer): stats, corpus, prefixes, snapshots, run
+  report_html.py         # Static HTML report generator for GitHub Pages
   corpus/
     federal_agencies.py  # Seed list: 24 CFO Act agencies and ARIN handles
-    arin.py              # ARIN WHOIS REST API client
-    caida.py             # CAIDA AS2Org downloader and parser
+    arin.py              # ARIN WHOIS REST client + arin_reachable() pre-flight
+    caida.py             # CAIDA AS2Org downloader and parser (monthly cadence)
     schema.py            # AsnRecord dataclass, tier priority constants
     build.py             # Corpus builder: ARIN + CAIDA merge, CSV + DuckDB output
   pipeline/
     routeviews.py        # RouteViews URL construction and MRT downloader
-    parse.py             # MRT TABLE_DUMP_V2 parser → Parquet
+    parse.py             # MRT TABLE_DUMP_V2 parser → Parquet (int64 ASNs)
     normalize.py         # Parquet → prefix_records (filtered to corpus ASNs)
     caida_pfx2as.py      # CAIDA pfx2as downloader and loader
     runner.py            # Orchestrator: run_incremental, run_backfill
+
+.github/workflows/
+  corpus-update.yml      # Weekly corpus rebuild; manual dispatch commits to main
+  routeviews-ingest.yml  # Weekly MRT ingest; updates data-latest release
+  routeviews-backfill.yml# Manual historical backfill
+  publish.yml            # Versioned corpus release on push to main
+  pages.yml              # Static HTML dashboard → GitHub Pages
 
 tests/
   conftest.py            # Shared pytest fixtures (in-memory DuckDB)
@@ -451,16 +542,11 @@ tests/
   pipeline/              # Unit tests for pipeline modules
   test_db.py             # Schema tests
   test_integration.py    # End-to-end mocked pipeline smoke test
-  fixtures/              # Sample AS2Org and pfx2as files for tests
 
-data/                    # Runtime outputs (gitignored except .gitkeep)
+data/
+  usg_asn_corpus.csv     # Committed corpus snapshot (used by CI to avoid ARIN)
   raw/                   # Downloaded MRT and CAIDA files (gitignored)
-  usg_ipv6.duckdb        # Analytical store (gitignored)
-  usg_asn_corpus.csv     # Corpus snapshot (generated by make corpus)
-
-docs/
-  superpowers/specs/     # Design specification
-  superpowers/plans/     # Implementation plan
+  usg_ipv6.duckdb        # Analytical store (gitignored; lives in data-latest release)
 ```
 
 ---
@@ -468,27 +554,18 @@ docs/
 ## Development
 
 ```bash
-# Run the test suite
-make test
-
-# Syntax-check all production modules
-make lint
+make test          # run the full test suite
+make lint          # syntax-check all production modules
 
 # Run a specific test file
 uv run pytest tests/pipeline/test_parse.py -v
 
-# Open a DuckDB shell against the analytical store
-uv run python -c "import duckdb; duckdb.connect('data/usg_ipv6.duckdb').execute('.tables')"
+# Generate the HTML report locally
+uv run python -m usg_ipv6.report_html   # writes web/index.html
+
+# Open the DuckDB shell
+uv run python -c "import duckdb; duckdb.connect('data/usg_ipv6.duckdb').sql('SHOW TABLES').show()"
 ```
 
-Dependencies are declared in `pyproject.toml` under `[dependency-groups] dev`. To add a new runtime dependency:
-
-```bash
-uv add <package>
-```
-
-To add a dev-only dependency:
-
-```bash
-uv add --dev <package>
-```
+To add a runtime dependency: `uv add <package>`
+To add a dev-only dependency: `uv add --dev <package>`
