@@ -8,7 +8,7 @@ def get_connection(db_path: str) -> duckdb.DuckDBPyConnection:
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute("""
         CREATE TABLE IF NOT EXISTS asn_corpus (
-            asn             INTEGER PRIMARY KEY,
+            asn             BIGINT PRIMARY KEY,
             org_name        VARCHAR NOT NULL,
             agency          VARCHAR NOT NULL,
             tier            VARCHAR NOT NULL,
@@ -34,9 +34,9 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
         CREATE TABLE IF NOT EXISTS prefix_records (
             snapshot_ts     TIMESTAMP NOT NULL,
             collector       VARCHAR NOT NULL,
-            peer_asn        INTEGER NOT NULL,
+            peer_asn        BIGINT NOT NULL,
             prefix          VARCHAR NOT NULL,
-            origin_asn      INTEGER NOT NULL,
+            origin_asn      BIGINT NOT NULL,
             prefix_len      INTEGER NOT NULL,
             af              INTEGER NOT NULL
         )
@@ -46,14 +46,14 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             snapshot_date   DATE NOT NULL,
             prefix          VARCHAR NOT NULL,
             prefix_len      INTEGER NOT NULL,
-            asn             INTEGER NOT NULL,
+            asn             BIGINT NOT NULL,
             af              INTEGER NOT NULL
         )
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS ark_reachability (
             measurement_date DATE NOT NULL,
-            asn              INTEGER NOT NULL,
+            asn              BIGINT NOT NULL,
             ipv6_reachable   BOOLEAN NOT NULL
         )
     """)

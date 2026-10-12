@@ -65,7 +65,7 @@ def parse_mrt(mrt_path: str, parquet_path: str) -> int:
 
     schema = pa.schema([
         pa.field("prefix", pa.string()),
-        pa.field("origin_asn", pa.int32()),
+        pa.field("origin_asn", pa.int64()),
         pa.field("prefix_len", pa.int16()),
         pa.field("af", pa.int8()),
     ])
