@@ -10,8 +10,8 @@ PFX2AS_URL = (
 )
 
 
-def download_pfx2as(dest_dir: str, date: str, variant: str = "rv2") -> str:
-    """Download a CAIDA pfx2as file. variant='rv2' for IPv4, 'rv6' for IPv6."""
+def download_pfx2as(dest_dir: str, date: str, variant: str = "rv6") -> str:
+    """Download a CAIDA pfx2as file. variant='rv6' for IPv6 (default), 'rv2' for IPv4."""
     year, month, day = date.split("-")
     url = PFX2AS_URL.format(year=year, month=month, date=f"{year}{month}{day}", variant=variant)
     dest = Path(dest_dir) / url.split("/")[-1]

@@ -129,10 +129,10 @@ jobs:
               conn.close()
               sys.exit(0)
 
-          # Download both IPv4 (rv2) and IPv6 (rv6) pfx2as files.
-          # rv2 covers IPv4 prefixes; rv6 covers IPv6 prefixes (needed by Ark).
+          # Download IPv6 (rv6) pfx2as — primary data for this study.
+          # Also download IPv4 (rv2) as enrichment; failure there is non-fatal.
           any_loaded = False
-          for variant, label in [("rv2", "IPv4"), ("rv6", "IPv6")]:
+          for variant, label in [("rv6", "IPv6"), ("rv2", "IPv4")]:
               downloaded = None
               for days_back in range(8):
                   attempt = date.fromordinal(today.toordinal() - days_back)
@@ -154,7 +154,7 @@ jobs:
               any_loaded = True
 
           if not any_loaded:
-              print("ERROR: Could not download any CAIDA pfx2as file.", file=sys.stderr)
+              print("ERROR: Could not download CAIDA pfx2as (rv6 IPv6 required).", file=sys.stderr)
               conn.close()
               sys.exit(1)
 
