@@ -17,6 +17,7 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Corpus build](#corpus-build)
 - [Pipeline: incremental run](#pipeline-incremental-run)
 - [Pipeline: backfill](#pipeline-backfill)
+- [Ark reachability](#ark-reachability)
 - [Database schema](#database-schema)
 - [Python API](#python-api)
 - [Data sources](#data-sources)
@@ -57,16 +58,22 @@ make setup
 # 1. Build (or refresh) the USG ASN corpus
 make corpus
 
-# 2. Process the most recent available RIB snapshot
+# 2. Process the most recent available RIB snapshot (RouteViews BGP)
 make run
 
-# 3. Query with the CLI
+# 3. Ingest the most recent CAIDA Ark IPv6 active-measurement file
+make ark
+
+# 4. Query with the CLI
 uv run usg stats
 uv run usg corpus --tier cfo_act
 uv run usg prefixes --af 6
+uv run usg ark stats
+uv run usg ark gap
 ```
 
-For historical analysis, replace step 2 with `make backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
+For historical BGP analysis, replace step 2 with `make backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
+For historical Ark analysis, replace step 3 with `make ark-backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
 
 ---
 
@@ -162,6 +169,52 @@ uv run usg run backfill 2024-01-01 2024-12-31
 uv run usg run backfill 2021-01-01 2024-12-31 --collector route-views6
 ```
 
+### `usg ark ingest`
+
+Download and ingest the CAIDA Ark IPv6 active-measurement file for a given date (or the most recent available if no date is given). Requires `caida_pfx2as` to be populated first (`make run` handles this).
+
+```bash
+uv run usg ark ingest                      # latest available
+uv run usg ark ingest --date 2024-03-15   # specific date (walks back up to 6 days if not published)
+```
+
+### `usg ark backfill`
+
+Ingest all daily Ark files in a date range. Already-loaded dates are skipped.
+
+```bash
+uv run usg ark backfill 2024-01-01 2024-12-31
+uv run usg ark backfill 2021-01-01 2024-12-31
+```
+
+### `usg ark stats`
+
+Reachability summary for the most recent Ark measurement date: counts of reachable, not-reachable, and indeterminate ASNs.
+
+```bash
+uv run usg ark stats
+uv run usg ark stats --json
+```
+
+Example output:
+
+```text
+Ark measurement date : 2024-03-13
+Reachable            : 38
+Not reachable        : 12
+Indeterminate        : 22  (no IPv6 pfx2as prefixes on record)
+pfx2as snapshot      : 2024-03-15
+```
+
+### `usg ark gap`
+
+List corpus ASNs that have IPv6 prefixes in pfx2as but zero Ark-observed addresses — i.e., agencies that advertise IPv6 routes but whose addresses are not reachable from CAIDA Ark vantage points.
+
+```bash
+uv run usg ark gap
+uv run usg ark gap --json
+```
+
 ---
 
 ## Make targets
@@ -172,6 +225,8 @@ uv run usg run backfill 2021-01-01 2024-12-31 --collector route-views6
 | `make corpus` | Build the USG ASN corpus (ARIN + CAIDA) |
 | `make run` | Fetch and process the most recent RIB snapshot |
 | `make backfill` | Process all RIB snapshots in a date range |
+| `make ark` | Download and ingest the most recent CAIDA Ark IPv6 file |
+| `make ark-backfill` | Ingest all daily Ark files in a date range |
 | `make test` | Run the full test suite |
 | `make lint` | Syntax-check all production modules |
 
@@ -214,6 +269,24 @@ Historical ingest over a user-supplied date range. Accepts `since`, `until`, and
 ### Publish (`publish.yml`)
 
 Runs on every push to `main`. Creates a versioned `corpus-YYYY-MM-DD` GitHub Release with `data/usg_asn_corpus.csv` attached.
+
+### CAIDA Ark IPv6 Reachability Ingest (`ark-ingest.yml`)
+
+Downloads the daily CAIDA Ark IPv6 `team-1.ipv6.YYYYMMDD.nodes.as.gz` file, re-annotates each observed address using our pfx2as LPM index, and writes per-ASN reachability verdicts to `ark_reachability`.
+
+- **Scheduled**: Wednesdays 09:00 UTC (offset from RouteViews Monday run to allow pfx2as to be current)
+- **Manual dispatch**: accepts `date` (single date), `since`/`until` (backfill range)
+
+**Requires:** RouteViews MRT Ingest must have run first so `caida_pfx2as` is populated.
+
+**What it does:**
+
+1. Downloads the existing DuckDB from the `data-latest` release (`|| true` for first-run safety).
+2. Looks up the most recent pfx2as snapshot date.
+3. Loads all IPv6 (prefix, ASN) pairs for corpus ASNs and builds an in-memory LPM index.
+4. Downloads and streams the Ark nodes-as file; for each observed IPv6 address, resolves the owning ASN via LPM and accumulates per-ASN counts.
+5. Writes one `ark_reachability` row per corpus ASN: `ipv6_reachable=TRUE` if observed, `FALSE` if the ASN has IPv6 pfx2as prefixes but no observed addresses, or `prefixes_in_scope=0` if the ASN has no IPv6 prefixes on record (indeterminate).
+6. Re-uploads the updated DuckDB and triggers the GitHub Pages rebuild.
 
 ### Deploy GitHub Pages (`pages.yml`)
 
@@ -317,6 +390,40 @@ RouteViews publishes snapshots every 2 hours (12 per day). A full year is ~4,380
 
 ---
 
+## Ark reachability
+
+CAIDA's Ark project publishes daily `team-1.ipv6.YYYYMMDD.nodes.as.gz` files listing every IPv6 address observed by their global vantage-point network, annotated with Ark's own AS annotation. This pipeline cross-references those observations against our pfx2as-derived LPM index to produce per-agency reachability verdicts.
+
+**Prerequisite:** `caida_pfx2as` must be populated. Running `make run` (or the RouteViews ingest GitHub Action) loads pfx2as automatically.
+
+```bash
+# Ingest the most recent file
+make ark
+
+# Backfill a date range (skips dates already in the DB)
+make ark-backfill SINCE=2023-01-01 UNTIL=2024-12-31
+
+# Check reachability summary
+uv run usg ark stats
+
+# Show the gap: agencies advertising IPv6 but not reachable from Ark
+uv run usg ark gap
+```
+
+**Attribution approach (Option C hybrid):** Each Ark address is looked up in our pfx2as LPM index to derive `our_asn`. Ark's embedded annotation (`ark_asn`) is also recorded. Divergences between the two (where Ark and pfx2as disagree on the owning ASN) are counted per ASN in `asn_divergence_count` — a publishable finding about BGP/routing-layer consistency.
+
+**Reachability categories:**
+
+| Category | Meaning |
+| ----------- | ------- |
+| Reachable | `ipv6_reachable=TRUE` — Ark observed ≥1 address in this ASN's IPv6 prefixes |
+| Not reachable | `ipv6_reachable=FALSE`, `prefixes_in_scope>0` — ASN has IPv6 prefixes but none were observed |
+| Indeterminate | `prefixes_in_scope=0` — ASN has no IPv6 prefixes in the pfx2as snapshot; reachability cannot be assessed |
+
+**Lookback:** If the requested date's file is not yet published, the downloader walks back up to 6 days to find the most recent available file. The stored `measurement_date` always reflects the filename date, not the requested date.
+
+---
+
 ## Database schema
 
 The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tables are created automatically on first run. ASN columns use `BIGINT` to accommodate the full 32-bit unsigned ASN range (0–4,294,967,295).
@@ -376,13 +483,30 @@ Corroborating prefix-to-ASN mapping from CAIDA RouteViews pfx2as.
 
 ### `ark_reachability`
 
-Reserved for CAIDA Ark active-measurement reachability data (Phase 2).
+One row per (measurement date, ASN). Written by `make ark` / `usg ark ingest`.
 
 | Column | Type | Description |
 | -------- | ------ | ------------- |
-| `measurement_date` | DATE | Date of measurement |
-| `asn` | BIGINT | ASN |
-| `ipv6_reachable` | BOOLEAN | Whether IPv6 was reachable from Ark vantage points |
+| `measurement_date` | DATE PK | Date of the Ark measurement file |
+| `asn` | BIGINT PK | Autonomous System Number |
+| `ipv6_reachable` | BOOLEAN | TRUE if ≥1 address was observed; FALSE otherwise |
+| `addresses_observed` | INTEGER | Count of IPv6 addresses seen in this ASN's prefixes |
+| `prefixes_in_scope` | INTEGER | Count of IPv6 pfx2as prefixes for this ASN (0 = indeterminate) |
+| `pfx2as_snapshot_date` | DATE | Which pfx2as snapshot was used for attribution |
+| `asn_divergence_count` | INTEGER | Addresses where Ark's ASN annotation differs from our pfx2as LPM |
+
+### `ark_prefix_observations`
+
+One row per (measurement date, prefix). Provides per-prefix granularity for divergence analysis.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `measurement_date` | DATE PK | Date of the Ark measurement file |
+| `prefix` | VARCHAR PK | IPv6 CIDR prefix (from pfx2as) |
+| `our_asn` | BIGINT | ASN from our pfx2as LPM index |
+| `addresses_observed` | INTEGER | Count of Ark addresses that fell within this prefix |
+| `addresses_ark_match` | INTEGER | Count where Ark's annotation agreed with our LPM |
+| `pfx2as_snapshot_date` | DATE | Which pfx2as snapshot was used |
 
 **Example queries:**
 
@@ -420,6 +544,34 @@ AND c.asn NOT IN (
     WHERE af = 6 AND snapshot_ts = (SELECT MAX(snapshot_ts) FROM prefix_records)
 )
 ORDER BY c.agency;
+
+-- Ark reachability summary for the most recent measurement
+SELECT
+    SUM(CASE WHEN ipv6_reachable = TRUE  THEN 1 ELSE 0 END) AS reachable,
+    SUM(CASE WHEN ipv6_reachable = FALSE AND prefixes_in_scope > 0 THEN 1 ELSE 0 END) AS not_reachable,
+    SUM(CASE WHEN prefixes_in_scope = 0  THEN 1 ELSE 0 END) AS indeterminate
+FROM ark_reachability
+WHERE measurement_date = (SELECT MAX(measurement_date) FROM ark_reachability);
+
+-- Gap: agencies with IPv6 prefixes but no Ark-observed addresses
+SELECT ar.asn, c.agency, c.tier,
+       ar.addresses_observed, ar.prefixes_in_scope, ar.asn_divergence_count
+FROM ark_reachability ar
+JOIN asn_corpus c ON ar.asn = c.asn
+WHERE ar.measurement_date = (SELECT MAX(measurement_date) FROM ark_reachability)
+  AND ar.ipv6_reachable = FALSE
+  AND ar.prefixes_in_scope > 0
+ORDER BY c.tier, c.agency;
+
+-- ASN attribution divergence: where Ark and pfx2as disagree most
+SELECT ar.asn, c.agency,
+       ar.addresses_observed, ar.asn_divergence_count,
+       ROUND(100.0 * ar.asn_divergence_count / ar.addresses_observed, 1) AS divergence_pct
+FROM ark_reachability ar
+JOIN asn_corpus c ON ar.asn = c.asn
+WHERE ar.measurement_date = (SELECT MAX(measurement_date) FROM ark_reachability)
+  AND ar.addresses_observed > 0
+ORDER BY divergence_pct DESC;
 ```
 
 ---
@@ -444,7 +596,7 @@ as2org_path = download_as2org("data/raw")
 csv_path = build_corpus("data/usg_ipv6.duckdb", as2org_path, version="2024-01-01")
 ```
 
-### Pipeline
+### RouteViews pipeline
 
 ```python
 from datetime import datetime
@@ -460,6 +612,43 @@ result = run_backfill(
     until=datetime(2024, 12, 31),
 )
 print(result)  # {"processed": N}
+```
+
+### Ark pipeline
+
+```python
+from datetime import datetime
+from usg_ipv6.pipeline.ark import run_ark_ingest, run_ark_backfill
+
+# Ingest a single date (omit date= for today's file)
+result = run_ark_ingest("data/usg_ipv6.duckdb", date="2024-03-15")
+print(result)
+# {"date": "2024-03-13", "addresses_parsed": 48210, "asns_updated": 38,
+#  "pfx2as_snapshot_date": "2024-03-15", "skipped": False}
+# Note: date in result reflects the filename (lookback may resolve an earlier date)
+
+# Backfill a range (already-loaded dates are skipped)
+result = run_ark_backfill(
+    "data/usg_ipv6.duckdb",
+    datetime(2024, 1, 1),
+    datetime(2024, 12, 31),
+)
+print(result)  # {"processed": N, "skipped": K, "failed": 0}
+```
+
+### LPM index (low-level)
+
+```python
+import ipaddress
+from usg_ipv6.pipeline.lpm import build_lpm_index, lpm_lookup, lpm_lookup_entry
+
+index = build_lpm_index([("2001:db8::/32", 64496), ("2001:db8:1::/48", 64497)])
+
+asn = lpm_lookup(ipaddress.IPv6Address("2001:db8:1::1"), index)
+# 64497  (longest-prefix match)
+
+entry = lpm_lookup_entry(ipaddress.IPv6Address("2001:db8::1"), index)
+# (64496, "2001:db8::/32")
 ```
 
 ### Database
@@ -489,7 +678,8 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | Source | Used for | Access |
 | -------- | ---------- | -------- |
 | [RouteViews](http://archive.routeviews.org) | MRT RIB dumps (primary) | Public HTTP, no auth |
-| [CAIDA RouteViews pfx2as](https://publicdata.caida.org/datasets/routing/routeviews-prefix2as/) | Prefix-to-ASN corroboration | Public HTTP, no auth |
+| [CAIDA RouteViews pfx2as](https://publicdata.caida.org/datasets/routing/routeviews-prefix2as/) | Prefix-to-ASN corroboration and LPM attribution | Public HTTP, no auth |
+| [CAIDA Ark IPv6](https://publicdata.caida.org/datasets/topology/ark/ipv6/probe-data/team-1/) | Active-measurement IPv6 reachability (daily) | Public HTTP, no auth |
 | [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping (published 1st of each month) | Public HTTP, no auth |
 | [ARIN WHOIS REST API](https://www.arin.net/resources/registry/whois/rws/api/) | Authoritative ASN registration | Public REST API, no auth |
 
@@ -528,11 +718,14 @@ usg_ipv6/
     normalize.py         # Parquet → prefix_records (filtered to corpus ASNs)
     caida_pfx2as.py      # CAIDA pfx2as downloader and loader
     runner.py            # Orchestrator: run_incremental, run_backfill
+    lpm.py               # Stdlib-only longest-prefix-match engine (IPv6)
+    ark.py               # CAIDA Ark downloader, parser, and ingest orchestrator
 
 .github/workflows/
   corpus-update.yml      # Weekly corpus rebuild; manual dispatch commits to main
   routeviews-ingest.yml  # Weekly MRT ingest; updates data-latest release
   routeviews-backfill.yml# Manual historical backfill
+  ark-ingest.yml         # Wednesday Ark IPv6 reachability ingest
   publish.yml            # Versioned corpus release on push to main
   pages.yml              # Static HTML dashboard → GitHub Pages
 
