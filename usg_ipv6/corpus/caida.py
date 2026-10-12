@@ -6,8 +6,12 @@ CAIDA_AS2ORG_URL = (
     "https://publicdata.caida.org/datasets/as-organizations/"
     "{date}.as-org2info.txt.gz"
 )
+# AUT (ASN) lines: always 6 fields
 KNOWN_AUT_FORMAT = "aut|changed|aut_name|org_id|opaque_id|source"
-KNOWN_ORG_FORMAT = "org|changed|name|country|org_id|source"
+# ORG lines: 6-field legacy format and the 5-field format used in files from ~2024+
+KNOWN_ORG_FORMAT_LEGACY = "org|changed|name|country|org_id|source"
+KNOWN_ORG_FORMAT = "org_id|changed|org_name|country|source"
+_KNOWN_FORMATS = {KNOWN_AUT_FORMAT, KNOWN_ORG_FORMAT, KNOWN_ORG_FORMAT_LEGACY}
 
 
 def download_as2org(dest_dir: str) -> str:
@@ -58,11 +62,12 @@ def parse_as2org(filepath: str) -> dict[int, dict]:
             if line.startswith("#"):
                 if "format:" in line:
                     fmt = line.split("format:", 1)[1].strip()
-                    if fmt not in (KNOWN_AUT_FORMAT, KNOWN_ORG_FORMAT):
+                    if fmt not in _KNOWN_FORMATS:
                         raise ValueError(f"Unknown AS2Org format: {fmt!r}")
                 continue
             parts = line.split("|")
-            if len(parts) != 6:
+            # AUT lines are 6 fields; ORG lines are 5 (new) or 6 (legacy)
+            if len(parts) not in (5, 6):
                 continue
             try:
                 # aut line: asn|changed|aut_name|org_id|opaque_id|source
@@ -70,7 +75,9 @@ def parse_as2org(filepath: str) -> dict[int, dict]:
                 org_id = parts[3]
                 asns.append((asn, org_id))
             except ValueError:
-                # org line: org_id|changed|name|country|opaque_id|source
+                # org line (new):    org_id|changed|org_name|country|source
+                # org line (legacy): org_id|changed|name|country|org_id|source
+                # Field positions 0, 2, 3 are the same in both formats.
                 org_id = parts[0]
                 org_name = parts[2]
                 country = parts[3]
