@@ -17,6 +17,9 @@ dev = [
     "responses>=0.25",
 ]
 
+[project.scripts]
+usg = "usg_ipv6.cli:app"
+
 [tool.hatch.build.targets.wheel]
 packages = ["usg_ipv6"]
 

@@ -16,14 +16,10 @@ corpus:
 		--version $(shell date +%Y-%m-%d)
 
 run:
-	uv run python -c "from usg_ipv6.pipeline.runner import run_incremental; \
-		import json; print(json.dumps(run_incremental('$(DB_PATH)', '$(COLLECTOR)', limit=1)))"
+	uv run usg run ingest --db $(DB_PATH) --collector $(COLLECTOR) --limit 1
 
 backfill:
-	uv run python -c "from usg_ipv6.pipeline.runner import run_backfill; \
-		from datetime import datetime; import json; \
-		print(json.dumps(run_backfill('$(DB_PATH)', '$(COLLECTOR)', \
-		datetime.fromisoformat('$(SINCE)'), datetime.fromisoformat('$(UNTIL)'))))"
+	uv run usg run backfill $(SINCE) $(UNTIL) --db $(DB_PATH) --collector $(COLLECTOR)
 
 test:
 	uv run pytest
