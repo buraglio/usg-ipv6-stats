@@ -4,16 +4,22 @@ import duckdb
 import requests
 from pathlib import Path
 
-PFX2AS_URL = (
+# rv2 (IPv4) and rv6 (IPv6) live under different dataset paths on CAIDA's server.
+_PFX2AS_URL_RV2 = (
     "https://publicdata.caida.org/datasets/routing/routeviews-prefix2as/"
-    "{year}/{month}/routeviews-{variant}-{date}-1200.pfx2as.gz"
+    "{year}/{month}/routeviews-rv2-{date}-1200.pfx2as.gz"
+)
+_PFX2AS_URL_RV6 = (
+    "https://publicdata.caida.org/datasets/routing/routeviews6-prefix2as/"
+    "{year}/{month}/routeviews-rv6-{date}-1200.pfx2as.gz"
 )
 
 
 def download_pfx2as(dest_dir: str, date: str, variant: str = "rv6") -> str:
     """Download a CAIDA pfx2as file. variant='rv6' for IPv6 (default), 'rv2' for IPv4."""
     year, month, day = date.split("-")
-    url = PFX2AS_URL.format(year=year, month=month, date=f"{year}{month}{day}", variant=variant)
+    template = _PFX2AS_URL_RV6 if variant == "rv6" else _PFX2AS_URL_RV2
+    url = template.format(year=year, month=month, date=f"{year}{month}{day}")
     dest = Path(dest_dir) / url.split("/")[-1]
     Path(dest_dir).mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True, timeout=60) as r:
