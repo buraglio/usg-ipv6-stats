@@ -58,6 +58,65 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release download data-latest --pattern '*.duckdb' --dir data/ || true
 
+      - name: Load CAIDA prefix-to-ASN data into DuckDB
+        # Ensures caida_pfx2as is populated before Ark ingest runs.
+        # Skipped if data for the current month already exists (re-run safe).
+        # Downloads rv6 (IPv6, primary) then rv2 (IPv4, enrichment only).
+        run: |
+          uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
+          from datetime import date
+          import sys
+
+          today = date.today()
+          snapshot_date = today.isoformat()
+          month_start = today.replace(day=1).isoformat()
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+
+          existing = conn.execute(
+              "SELECT COUNT(*) FROM caida_pfx2as WHERE snapshot_date >= ?",
+              [month_start],
+          ).fetchone()[0]
+
+          if existing > 0:
+              print(f"CAIDA pfx2as already loaded for {today.strftime('%Y-%m')} "
+                    f"({existing:,} rows) — skipping download")
+              conn.close()
+              sys.exit(0)
+
+          any_loaded = False
+          for variant, label in [("rv6", "IPv6"), ("rv2", "IPv4")]:
+              downloaded = None
+              for days_back in range(8):
+                  attempt = date.fromordinal(today.toordinal() - days_back)
+                  try:
+                      downloaded = download_pfx2as('data/raw', attempt.isoformat(), variant)
+                      print(f"Downloaded CAIDA pfx2as {label} ({variant}) for {attempt.isoformat()}")
+                      break
+                  except Exception as e:
+                      print(f"  {attempt.isoformat()} ({variant}): {e}", file=sys.stderr)
+
+              if downloaded is None:
+                  print(f"WARNING: Could not download {variant} pfx2as — "
+                        f"{label} prefix-to-ASN data will not be updated this run",
+                        file=sys.stderr)
+                  continue
+
+              n = load_pfx2as(downloaded, snapshot_date, conn)
+              print(f"Loaded {n:,} {label} pfx2as prefix records (snapshot_date={snapshot_date})")
+              any_loaded = True
+
+          if not any_loaded:
+              print("ERROR: Could not download CAIDA pfx2as (rv6 IPv6 required).", file=sys.stderr)
+              conn.close()
+              sys.exit(1)
+
+          conn.close()
+          PYEOF
+
       - name: Run Ark ingest
         env:
           INPUT_DATE:  ${{ inputs.date }}
