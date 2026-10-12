@@ -40,6 +40,7 @@ def download_as2org(dest_dir: str) -> str:
     if url is None:
         raise RuntimeError("Could not locate a recent CAIDA AS2Org file")
 
+    Path(dest_dir).mkdir(parents=True, exist_ok=True)
     dest = Path(dest_dir) / url.split("/")[-1]
     with requests.get(url, stream=True, timeout=60) as r:
         r.raise_for_status()
