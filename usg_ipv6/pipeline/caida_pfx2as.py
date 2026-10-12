@@ -40,16 +40,17 @@ def load_pfx2as(
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            parts = line.split("|")
-            if len(parts) < 2:
+            # CAIDA pfx2as format: <prefix>\t<prefixlen>\t<asn>
+            # Multi-origin ASNs appear as "1234_5678" — take first
+            parts = line.split()
+            if len(parts) < 3:
                 continue
-            prefix_str = parts[0].strip()
-            # handle multi-origin "1234_5678" — take first ASN
-            asn_str = parts[1].strip().split("_")[0]
+            prefix_addr, prefix_len_str, asn_str = parts[0], parts[1], parts[2]
+            asn_str = asn_str.split("_")[0]
             try:
-                net = ipaddress.ip_network(prefix_str, strict=False)
+                net = ipaddress.ip_network(f"{prefix_addr}/{prefix_len_str}", strict=False)
                 asn = int(asn_str)
-                rows.append((snapshot_date, prefix_str, net.prefixlen, asn, net.version))
+                rows.append((snapshot_date, str(net), net.prefixlen, asn, net.version))
             except (ValueError, IndexError):
                 continue
     if rows:
