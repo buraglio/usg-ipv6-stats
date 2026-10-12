@@ -4,7 +4,7 @@ DB_PATH ?= data/usg_ipv6.duckdb
 COLLECTOR ?= route-views2
 SINCE ?= 2021-01-01
 UNTIL ?= 2024-12-31
-AS2ORG ?= data/as2org.txt.gz
+AS2ORG ?=
 
 setup:
 	uv sync
@@ -12,7 +12,7 @@ setup:
 corpus:
 	uv run python -m usg_ipv6.corpus.build \
 		--db $(DB_PATH) \
-		--as2org $(AS2ORG) \
+		$(if $(AS2ORG),--as2org $(AS2ORG),) \
 		--version $(shell date +%Y-%m-%d)
 
 run:
