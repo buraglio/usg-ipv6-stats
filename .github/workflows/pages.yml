@@ -1,0 +1,70 @@
+name: Deploy GitHub Pages
+
+# Generates a static HTML report from the current DuckDB and deploys it to
+# GitHub Pages.  Runs automatically after each RouteViews MRT Ingest run and
+# on every push to main (so corpus or code changes also refresh the page).
+#
+# One-time setup required in the repository settings:
+#   Settings → Pages → Source → GitHub Actions
+
+on:
+  workflow_run:
+    workflows: ["RouteViews MRT Ingest"]
+    types: [completed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; do not cancel in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build report and deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Download DuckDB from rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p data
+          gh release download data-latest --pattern '*.duckdb' --dir data/ || true
+
+      - name: Generate HTML report
+        run: |
+          mkdir -p web
+          uv run python -m usg_ipv6.report_html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -35,4 +35,6 @@ lint:
 		usg_ipv6/pipeline/parse.py \
 		usg_ipv6/pipeline/normalize.py \
 		usg_ipv6/pipeline/caida_pfx2as.py \
-		usg_ipv6/pipeline/runner.py
+		usg_ipv6/pipeline/runner.py \
+		usg_ipv6/cli.py \
+		usg_ipv6/report_html.py
