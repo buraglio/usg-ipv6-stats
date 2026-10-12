@@ -151,7 +151,11 @@ jobs:
 
               n = load_pfx2as(downloaded, snapshot_date, conn)
               print(f"Loaded {n:,} {label} pfx2as prefix records (snapshot_date={snapshot_date})")
-              any_loaded = True
+              if n > 0:
+                  any_loaded = True
+              else:
+                  print(f"WARNING: {variant} file downloaded but parsed 0 records — "
+                        f"format may have changed", file=sys.stderr)
 
           if not any_loaded:
               print("ERROR: Could not download CAIDA pfx2as (rv6 IPv6 required).", file=sys.stderr)
