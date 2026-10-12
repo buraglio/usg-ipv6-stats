@@ -1,0 +1,111 @@
+name: CAIDA Ark IPv6 Reachability Ingest
+
+# Downloads the CAIDA Ark IPv6 nodes-as file, re-annotates each address
+# using our pfx2as LPM, and stores per-ASN reachability verdicts in DuckDB.
+#
+# Requires: RouteViews MRT Ingest must have run first (caida_pfx2as populated).
+# DuckDB lives in the rolling 'data-latest' GitHub Release.
+
+on:
+  schedule:
+    - cron: '0 9 * * 3'    # Wednesday 09:00 UTC — offset from RouteViews (Monday)
+  workflow_dispatch:
+    inputs:
+      date:
+        description: Single measurement date (YYYY-MM-DD). Leave blank for latest available.
+        required: false
+        default: ''
+        type: string
+      since:
+        description: Backfill start date (YYYY-MM-DD). Used with `until` for range.
+        required: false
+        default: ''
+        type: string
+      until:
+        description: Backfill end date (YYYY-MM-DD). Defaults to today when `since` is set.
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  ark-ingest:
+    name: Ingest CAIDA Ark IPv6 reachability data
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        # continue-on-error so the first-ever run (no release yet) still works
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/ || true
+
+      - name: Run Ark ingest
+        env:
+          INPUT_DATE:  ${{ inputs.date }}
+          INPUT_SINCE: ${{ inputs.since }}
+          INPUT_UNTIL: ${{ inputs.until }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os, sys
+          from datetime import datetime, date
+          from usg_ipv6.pipeline.ark import run_ark_ingest, run_ark_backfill
+
+          inp_date  = os.environ.get("INPUT_DATE", "").strip()
+          inp_since = os.environ.get("INPUT_SINCE", "").strip()
+          inp_until = os.environ.get("INPUT_UNTIL", "").strip()
+
+          if inp_since:
+              until_str = inp_until or date.today().isoformat()
+              print(f"Backfill: {inp_since} -> {until_str}")
+              result = run_ark_backfill(
+                  "data/usg_ipv6.duckdb",
+                  datetime.fromisoformat(inp_since),
+                  datetime.fromisoformat(until_str),
+              )
+          else:
+              target = inp_date or None
+              print(f"Ingest: date={target or 'latest'}")
+              result = run_ark_ingest("data/usg_ipv6.duckdb", date=target)
+
+          print(json.dumps(result, indent=2))
+          PYEOF
+
+      - name: Upload updated DuckDB to rolling release
+        # if: always() preserves progress even if ingest partially fails
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then
+            echo "No DuckDB to upload."
+            exit 0
+          fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Ark reachability ingest." \
+               --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true

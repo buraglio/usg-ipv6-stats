@@ -1,4 +1,4 @@
-.PHONY: setup corpus run backfill test lint
+.PHONY: setup corpus run backfill ark ark-backfill test lint
 
 DB_PATH ?= data/usg_ipv6.duckdb
 COLLECTOR ?= route-views2
@@ -21,6 +21,12 @@ run:
 backfill:
 	uv run usg run backfill $(SINCE) $(UNTIL) --db $(DB_PATH) --collector $(COLLECTOR)
 
+ark:
+	uv run usg ark ingest --db $(DB_PATH)
+
+ark-backfill:
+	uv run usg ark backfill $(SINCE) $(UNTIL) --db $(DB_PATH)
+
 test:
 	uv run pytest
 
@@ -36,5 +42,7 @@ lint:
 		usg_ipv6/pipeline/normalize.py \
 		usg_ipv6/pipeline/caida_pfx2as.py \
 		usg_ipv6/pipeline/runner.py \
+		usg_ipv6/pipeline/lpm.py \
+		usg_ipv6/pipeline/ark.py \
 		usg_ipv6/cli.py \
 		usg_ipv6/report_html.py
