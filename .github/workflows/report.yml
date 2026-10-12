@@ -23,13 +23,11 @@ jobs:
         run: uv sync --frozen
 
       - name: Download DuckDB from rolling release
-        # continue-on-error so the job survives if data-latest doesn't exist yet
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p data
-          gh release download data-latest --pattern '*.duckdb' --dir data/
+          gh release download data-latest --pattern '*.duckdb' --dir data/ || true
 
       - name: Generate report and write job summary
         run: |
