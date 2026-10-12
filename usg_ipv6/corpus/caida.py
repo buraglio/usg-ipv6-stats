@@ -4,29 +4,39 @@ from pathlib import Path
 
 CAIDA_AS2ORG_URL = (
     "https://publicdata.caida.org/datasets/as-organizations/"
-    "{year}/{date}.as-org2info.txt.gz"
+    "{date}.as-org2info.txt.gz"
 )
 KNOWN_AUT_FORMAT = "aut|changed|aut_name|org_id|opaque_id|source"
 KNOWN_ORG_FORMAT = "org|changed|name|country|org_id|source"
 
 
 def download_as2org(dest_dir: str) -> str:
-    from datetime import date, timedelta
+    from datetime import date
 
+    # CAIDA publishes AS2Org on the 1st of each month.  Try the current month
+    # then walk back up to 6 months to handle the window before each release.
     today = date.today()
-    for delta in range(0, 120, 30):
-        candidate = today - timedelta(days=delta)
-        url = CAIDA_AS2ORG_URL.format(
-            year=candidate.year,
-            date=candidate.strftime("%Y%m%d"),
-        )
-        resp = requests.head(url, timeout=10)
+    candidates = []
+    year, month = today.year, today.month
+    for _ in range(6):
+        candidates.append(date(year, month, 1))
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+
+    url = None
+    for candidate in candidates:
+        probe = CAIDA_AS2ORG_URL.format(date=candidate.strftime("%Y%m%d"))
+        resp = requests.head(probe, timeout=10)
         if resp.status_code == 200:
+            url = probe
             break
-    else:
+
+    if url is None:
         raise RuntimeError("Could not locate a recent CAIDA AS2Org file")
 
-    dest = Path(dest_dir) / Path(url).name
+    dest = Path(dest_dir) / url.split("/")[-1]
     with requests.get(url, stream=True, timeout=60) as r:
         r.raise_for_status()
         with open(dest, "wb") as f:
