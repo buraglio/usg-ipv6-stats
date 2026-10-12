@@ -23,6 +23,8 @@ jobs:
         run: uv sync --frozen
 
       - name: Download DuckDB from rolling release
+        # continue-on-error so the job survives if data-latest doesn't exist yet
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -32,7 +34,16 @@ jobs:
       - name: Generate report and write job summary
         run: |
           uv run python << 'PYEOF'
-          import duckdb, os
+          import duckdb, os, sys
+
+          if not os.path.exists('data/usg_ipv6.duckdb'):
+              summary_file = os.environ.get('GITHUB_STEP_SUMMARY', '/dev/stdout')
+              with open(summary_file, 'w') as f:
+                  f.write("## USG IPv6 Statistics Report\n\n")
+                  f.write("No data available yet — run the **RouteViews MRT Ingest** "
+                          "workflow first to populate the database.\n")
+              print("No DuckDB found — wrote placeholder summary.")
+              sys.exit(0)
 
           conn = duckdb.connect('data/usg_ipv6.duckdb')
           summary_file = os.environ.get('GITHUB_STEP_SUMMARY', '/dev/stdout')
