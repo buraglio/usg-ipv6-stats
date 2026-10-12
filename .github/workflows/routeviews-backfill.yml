@@ -1,8 +1,16 @@
-name: Backfill
+name: RouteViews MRT Backfill
 
-# Historical ingest. Processed snapshots are recorded in DuckDB and skipped
-# on re-runs, so long backfills are safely resumable — just trigger again if
-# the job hits the 6-hour GitHub Actions limit.
+# Historical ingest of RouteViews BGP MRT RIB dumps.
+#
+# Pipeline: fetch_rib → parse_mrt (Parquet) → load_parquet (DuckDB)
+# Orchestrated by: usg_ipv6/pipeline/runner.py::run_backfill
+#
+# RouteViews publishes a RIB snapshot every 2 hours (0000, 0200, …, 2200 UTC),
+# so a full year covers ~4 380 snapshots per collector.
+#
+# Resumability: processed snapshots are recorded in DuckDB and skipped on
+# re-runs, so long backfills survive the 6-hour GitHub Actions job limit —
+# just trigger the workflow again and it picks up where it left off.
 
 on:
   workflow_dispatch:
@@ -18,7 +26,7 @@ on:
         default: ''
         type: string
       collector:
-        description: RouteViews collector name
+        description: RouteViews collector (e.g. route-views2, route-views6)
         required: false
         default: route-views2
         type: string
@@ -27,9 +35,10 @@ permissions:
   contents: write
 
 jobs:
-  backfill:
+  backfill-mrt:
+    name: Backfill RouteViews MRT RIBs
     runs-on: ubuntu-latest
-    timeout-minutes: 350   # just under GitHub's 6-hour job limit; re-run to continue
+    timeout-minutes: 350   # just under GitHub's 6-hour job limit; re-trigger to continue
     steps:
       - uses: actions/checkout@v4
 
@@ -40,22 +49,25 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: uv sync --frozen
 
       - name: Create data directories
         run: mkdir -p data/raw
 
       - name: Download existing DuckDB from rolling release
+        # continue-on-error so the first-ever run (no release yet) still works
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release download data-latest --pattern '*.duckdb' --dir data/
 
-      - name: Load corpus into DuckDB
+      - name: Load USG ASN corpus into DuckDB
+        # Reloads corpus from the committed CSV so we never hit the ARIN API
+        # during backfill.  Run the Corpus Update workflow to refresh the CSV.
         run: |
           if [ -f data/usg_asn_corpus.csv ]; then
-            echo "Loading corpus from committed CSV..."
+            echo "Loading corpus from committed data/usg_asn_corpus.csv ..."
             uv run python << 'PYEOF'
           from usg_ipv6.db import get_connection, init_schema
           import csv
@@ -78,7 +90,7 @@ jobs:
           print(f'Loaded {len(rows)} ASNs into corpus')
           PYEOF
           else
-            echo "No corpus CSV found — building from ARIN + CAIDA..."
+            echo "No corpus CSV found — building from ARIN + CAIDA ..."
             uv run python -m usg_ipv6.corpus.build \
               --db data/usg_ipv6.duckdb \
               --version "$(date +%Y-%m-%d)" \
@@ -95,9 +107,13 @@ jobs:
           fi
           echo "since=${SINCE}" >> "$GITHUB_OUTPUT"
           echo "until=${UNTIL}" >> "$GITHUB_OUTPUT"
-          echo "Backfill range: ${SINCE} → ${UNTIL}"
+          echo "Backfill range: ${SINCE} → ${UNTIL} (collector: ${{ inputs.collector || 'route-views2' }})"
 
-      - name: Run backfill
+      - name: Fetch and parse historical MRT RIB snapshots
+        # run_backfill iterates every 2-hour slot in [since, until], downloads
+        # the corresponding RouteViews archive RIB dump, parses TABLE_DUMP_V2
+        # records with mrtparse, writes Parquet, then loads prefix records into
+        # DuckDB.  Snapshots already in the DB are skipped automatically.
         run: |
           SINCE="${{ steps.dates.outputs.since }}"
           UNTIL="${{ steps.dates.outputs.until }}"
@@ -107,6 +123,7 @@ jobs:
           from datetime import datetime
           import json
 
+          print(f"Backfilling MRT RIBs: collector=${COLLECTOR}  {SINCE} → ${UNTIL}")
           result = run_backfill(
               'data/usg_ipv6.duckdb',
               '${COLLECTOR}',
@@ -114,11 +131,15 @@ jobs:
               until=datetime.fromisoformat('${UNTIL}'),
           )
           print(json.dumps(result, indent=2))
-          print(f"Processed {result['processed']} snapshots for ${COLLECTOR} "
-                f"from ${SINCE} to ${UNTIL}")
+          print(
+              f"Processed {result['processed']} MRT RIB snapshot(s) for "
+              f"${COLLECTOR} ({SINCE} → ${UNTIL})"
+          )
           PYEOF
 
       - name: Upload updated DuckDB (always — preserves partial progress)
+        # if: always() ensures we upload even if the job hits the 6-hour limit
+        # or a snapshot fails to parse.  Re-trigger the workflow to continue.
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -130,6 +151,6 @@ jobs:
           gh release upload data-latest data/usg_ipv6.duckdb --clobber \
           || gh release create data-latest data/usg_ipv6.duckdb \
                --title "Data: $(date +%Y-%m-%d)" \
-               --notes "Backfill from ${{ steps.dates.outputs.since }} to ${{ steps.dates.outputs.until }} (${{ inputs.collector || 'route-views2' }})." \
+               --notes "Backfill (${{ inputs.collector || 'route-views2' }}): ${{ steps.dates.outputs.since }} → ${{ steps.dates.outputs.until }}." \
                --prerelease \
                --tag data-latest

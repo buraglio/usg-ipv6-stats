@@ -1,4 +1,17 @@
-name: Pipeline Run
+name: RouteViews MRT Ingest
+
+# Downloads BGP MRT RIB dumps from a RouteViews collector, parses
+# TABLE_DUMP_V2 records, filters to USG-corpus ASNs, and stores
+# IPv4/IPv6 prefix records in DuckDB.
+#
+# Pipeline: fetch_rib → parse_mrt (Parquet) → load_parquet (DuckDB)
+# Orchestrated by: usg_ipv6/pipeline/runner.py::run_incremental
+#
+# DuckDB is too large for git; it lives in the rolling 'data-latest'
+# GitHub Release. Each run downloads the existing DB, appends new
+# snapshots (already-processed ones are skipped), and re-uploads.
+#
+# For historical backfill use the RouteViews MRT Backfill workflow.
 
 on:
   schedule:
@@ -6,12 +19,12 @@ on:
   workflow_dispatch:
     inputs:
       collector:
-        description: RouteViews collector name
+        description: RouteViews collector (e.g. route-views2, route-views6)
         required: false
         default: route-views2
         type: string
       limit:
-        description: Maximum RIB snapshots to process per run
+        description: Max MRT RIB snapshots to fetch and parse per run
         required: false
         default: '6'
         type: string
@@ -20,7 +33,8 @@ permissions:
   contents: write
 
 jobs:
-  run-pipeline:
+  ingest-mrt:
+    name: Fetch and parse RouteViews MRT RIBs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,22 +46,25 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: uv sync --frozen
 
       - name: Create data directories
         run: mkdir -p data/raw
 
       - name: Download existing DuckDB from rolling release
+        # continue-on-error so the first-ever run (no release yet) still works
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release download data-latest --pattern '*.duckdb' --dir data/
 
-      - name: Load corpus into DuckDB
+      - name: Load USG ASN corpus into DuckDB
+        # Reloads corpus from the committed CSV so we never hit the ARIN API
+        # in this workflow. Run the Corpus Update workflow to refresh the CSV.
         run: |
           if [ -f data/usg_asn_corpus.csv ]; then
-            echo "Loading corpus from committed CSV..."
+            echo "Loading corpus from committed data/usg_asn_corpus.csv ..."
             uv run python << 'PYEOF'
           from usg_ipv6.db import get_connection, init_schema
           import csv
@@ -70,7 +87,7 @@ jobs:
           print(f'Loaded {len(rows)} ASNs into corpus')
           PYEOF
           else
-            echo "No corpus CSV found — building from ARIN + CAIDA..."
+            echo "No corpus CSV found — building from ARIN + CAIDA (slow; run Corpus Update workflow instead) ..."
             mkdir -p data/raw
             uv run python -m usg_ipv6.corpus.build \
               --db data/usg_ipv6.duckdb \
@@ -78,7 +95,10 @@ jobs:
               --csv data/usg_asn_corpus.csv
           fi
 
-      - name: Run incremental pipeline
+      - name: Fetch and parse RouteViews MRT RIB snapshots
+        # run_incremental downloads each RIB dump (.bz2), parses TABLE_DUMP_V2
+        # entries with mrtparse, writes a Parquet file, then normalises prefix
+        # records into DuckDB.  Already-processed snapshots are skipped.
         run: |
           COLLECTOR="${{ inputs.collector || 'route-views2' }}"
           LIMIT="${{ inputs.limit || '6' }}"
@@ -86,6 +106,7 @@ jobs:
           from usg_ipv6.pipeline.runner import run_incremental
           import json, sys
 
+          print(f"Collector: ${COLLECTOR}  limit: ${LIMIT} snapshots")
           result = run_incremental(
               'data/usg_ipv6.duckdb',
               '${COLLECTOR}',
@@ -93,7 +114,13 @@ jobs:
           )
           print(json.dumps(result, indent=2))
           if result['processed'] == 0:
-              print('WARNING: no new snapshots processed — collector may be ahead of schedule', file=sys.stderr)
+              print(
+                  'WARNING: 0 new snapshots processed — '
+                  'collector may be fully caught up or unreachable',
+                  file=sys.stderr,
+              )
+          else:
+              print(f"Ingested {result['processed']} MRT RIB snapshot(s) for ${COLLECTOR}")
           PYEOF
 
       - name: Upload updated DuckDB to rolling release
@@ -103,6 +130,6 @@ jobs:
           gh release upload data-latest data/usg_ipv6.duckdb --clobber \
           || gh release create data-latest data/usg_ipv6.duckdb \
                --title "Data: $(date +%Y-%m-%d)" \
-               --notes "Rolling data release — latest processed RouteViews snapshots." \
+               --notes "Rolling data release — latest RouteViews MRT snapshots for ${{ inputs.collector || 'route-views2' }}." \
                --prerelease \
                --tag data-latest
