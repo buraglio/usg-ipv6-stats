@@ -16,6 +16,9 @@ app = typer.Typer(
 run_app = typer.Typer(help="Run ingest pipeline operations.", no_args_is_help=True)
 app.add_typer(run_app, name="run", help="Run ingest pipeline operations.")
 
+ark_app = typer.Typer(help="CAIDA Ark IPv6 reachability commands.", no_args_is_help=True)
+app.add_typer(ark_app, name="ark", help="CAIDA Ark IPv6 reachability commands.")
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -299,6 +302,197 @@ def run_backfill(
     typer.echo(f"Backfill: collector={collector}, {since} → {until}, db={db}")
     result = _backfill(db, collector, since_dt, until_dt)
     typer.echo(f"Done. Processed: {result['processed']}")
+
+
+# ---------------------------------------------------------------------------
+# usg ark ingest
+# ---------------------------------------------------------------------------
+
+@ark_app.command("ingest")
+def ark_ingest(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    date: Optional[str] = typer.Option(
+        None, "--date", help="Measurement date (YYYY-MM-DD). Default: latest available."
+    ),
+    dest_dir: str = typer.Option("data/raw", "--dest-dir", help="Download directory."),
+) -> None:
+    """Ingest Ark IPv6 reachability data for one date."""
+    from usg_ipv6.pipeline.ark import run_ark_ingest
+    typer.echo(f"Ark ingest: date={date or 'latest'}, db={db}")
+    result = run_ark_ingest(db, date=date, dest_dir=dest_dir)
+    if result["skipped"]:
+        typer.echo(f"Skipped — {result['date']} already loaded.")
+    else:
+        typer.echo(
+            f"Done. date={result['date']}  parsed={result['addresses_parsed']:,}"
+            f"  asns_updated={result['asns_updated']}"
+            f"  pfx2as={result['pfx2as_snapshot_date']}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# usg ark backfill
+# ---------------------------------------------------------------------------
+
+@ark_app.command("backfill")
+def ark_backfill(
+    since: str = typer.Argument(..., help="Start date, YYYY-MM-DD."),
+    until: str = typer.Argument(..., help="End date, YYYY-MM-DD."),
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    dest_dir: str = typer.Option("data/raw", "--dest-dir", help="Download directory."),
+) -> None:
+    """Backfill Ark reachability data between two dates (inclusive)."""
+    from usg_ipv6.pipeline.ark import run_ark_backfill
+    try:
+        since_dt = datetime.fromisoformat(since)
+        until_dt = datetime.fromisoformat(until)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Ark backfill: {since} → {until}, db={db}")
+    result = run_ark_backfill(db, since_dt, until_dt, dest_dir=dest_dir)
+    typer.echo(
+        f"Done. processed={result['processed']}  skipped={result['skipped']}"
+        f"  failed={result['failed']}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# usg ark stats
+# ---------------------------------------------------------------------------
+
+@ark_app.command("stats")
+def ark_stats(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    date: Optional[str] = typer.Option(None, "--date", help="Measurement date (default: latest)."),
+    as_json: bool = typer.Option(False, "--json", is_flag=True, help="Output as JSON."),
+) -> None:
+    """Reachability summary for the most recent (or given) Ark measurement date."""
+    conn = _open(db)
+    mdate = date or conn.execute(
+        "SELECT MAX(measurement_date) FROM ark_reachability"
+    ).fetchone()[0]
+    if mdate is None:
+        typer.echo("No Ark data loaded. Run 'usg ark ingest' first.", err=True)
+        raise typer.Exit(1)
+
+    pfx2as_date = conn.execute(
+        "SELECT pfx2as_snapshot_date FROM ark_reachability WHERE measurement_date = ? LIMIT 1",
+        [mdate],
+    ).fetchone()
+    pfx2as_str = str(pfx2as_date[0]) if pfx2as_date else "unknown"
+
+    totals = conn.execute(
+        """
+        SELECT
+            COUNT(*) FILTER (WHERE ipv6_reachable = TRUE AND prefixes_in_scope > 0) AS reachable,
+            COUNT(*) FILTER (WHERE ipv6_reachable = FALSE AND prefixes_in_scope > 0) AS not_reachable,
+            COUNT(*) FILTER (WHERE prefixes_in_scope = 0) AS indeterminate
+        FROM ark_reachability WHERE measurement_date = ?
+        """,
+        [mdate],
+    ).fetchone()
+
+    by_tier = conn.execute(
+        """
+        SELECT c.tier,
+            COUNT(*) FILTER (WHERE ar.ipv6_reachable = TRUE AND ar.prefixes_in_scope > 0),
+            COUNT(*) FILTER (WHERE ar.ipv6_reachable = FALSE AND ar.prefixes_in_scope > 0)
+        FROM ark_reachability ar
+        JOIN asn_corpus c ON ar.asn = c.asn
+        WHERE ar.measurement_date = ?
+        GROUP BY c.tier ORDER BY c.tier
+        """,
+        [mdate],
+    ).fetchall()
+
+    avg_div = conn.execute(
+        """
+        SELECT AVG(CASE WHEN addresses_observed > 0
+                        THEN asn_divergence_count * 1.0 / addresses_observed
+                        ELSE NULL END) * 100
+        FROM ark_reachability WHERE measurement_date = ?
+        """,
+        [mdate],
+    ).fetchone()[0]
+    conn.close()
+
+    if as_json:
+        typer.echo(json.dumps({
+            "measurement_date": str(mdate),
+            "pfx2as_snapshot_date": pfx2as_str,
+            "reachable": totals[0], "not_reachable": totals[1],
+            "indeterminate": totals[2],
+            "avg_divergence_pct": round(avg_div or 0, 2),
+            "by_tier": [{"tier": r[0], "reachable": r[1], "not_reachable": r[2]}
+                        for r in by_tier],
+        }, indent=2))
+        return
+
+    typer.echo(f"Ark measurement : {mdate}")
+    typer.echo(f"pfx2as used     : {pfx2as_str}\n")
+    typer.echo(f"Reachable       : {totals[0]}")
+    typer.echo(f"Not reachable   : {totals[1]}")
+    typer.echo(f"Indeterminate   : {totals[2]}  (prefixes_in_scope = 0)\n")
+    typer.echo("By tier:")
+    _table(["Tier", "Reachable", "Not Reachable"],
+           [(r[0], r[1], r[2]) for r in by_tier])
+    if avg_div is not None:
+        typer.echo(f"\nAttribution divergence: {avg_div:.1f}% (ark_asn ≠ our_asn)")
+
+
+# ---------------------------------------------------------------------------
+# usg ark gap
+# ---------------------------------------------------------------------------
+
+@ark_app.command("gap")
+def ark_gap(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    tier: Optional[str] = typer.Option(None, "--tier", help="Filter by tier."),
+    date: Optional[str] = typer.Option(None, "--date", help="Measurement date (default: latest)."),
+    limit: int = typer.Option(100, "--limit", help="Max rows."),
+    as_json: bool = typer.Option(False, "--json", is_flag=True, help="Output as JSON."),
+) -> None:
+    """ASNs with BGP IPv6 prefixes but no Ark reachability (excludes indeterminate)."""
+    conn = _open(db)
+    mdate = date or conn.execute(
+        "SELECT MAX(measurement_date) FROM ark_reachability"
+    ).fetchone()[0]
+    if mdate is None:
+        typer.echo("No Ark data loaded. Run 'usg ark ingest' first.", err=True)
+        raise typer.Exit(1)
+
+    tier_clause = "AND c.tier = ?" if tier else ""
+    params: list[object] = [mdate] + ([tier] if tier else []) + [limit]
+    rows = conn.execute(
+        f"""
+        SELECT ar.asn, c.agency, c.tier, ar.addresses_observed, ar.prefixes_in_scope
+        FROM ark_reachability ar
+        JOIN asn_corpus c ON ar.asn = c.asn
+        WHERE ar.measurement_date = ?
+          AND ar.ipv6_reachable = FALSE
+          AND ar.prefixes_in_scope > 0
+          {tier_clause}
+        ORDER BY c.tier, c.agency
+        LIMIT ?
+        """,
+        params,
+    ).fetchall()
+    conn.close()
+
+    if as_json:
+        typer.echo(json.dumps([
+            {"asn": r[0], "agency": r[1], "tier": r[2],
+             "addresses_observed": r[3], "prefixes_in_scope": r[4]}
+            for r in rows
+        ], indent=2))
+        return
+
+    typer.echo(f"Gap (measurement: {mdate})  {len(rows)} ASN(s)\n")
+    _table(
+        ["ASN", "Agency", "Tier", "Addr Observed", "Prefixes"],
+        [(r[0], r[1], r[2], r[3], r[4]) for r in rows],
+    )
 
 
 if __name__ == "__main__":
