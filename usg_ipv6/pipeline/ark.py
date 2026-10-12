@@ -126,7 +126,7 @@ def run_ark_ingest(
     if pfx2as_date_row is None or pfx2as_date_row[0] is None:
         conn.close()
         raise RuntimeError(
-            "caida_pfx2as has no IPv6 rows — run RouteViews ingest first"
+            "caida_pfx2as is empty — run RouteViews ingest first"
         )
     pfx2as_date = str(pfx2as_date_row[0])
 
@@ -145,11 +145,6 @@ def run_ark_ingest(
         [pfx2as_date],
     ).fetchall()
 
-    if not pfx_rows:
-        conn.close()
-        return {"date": target, "addresses_parsed": 0, "asns_updated": 0,
-                "pfx2as_snapshot_date": pfx2as_date, "skipped": False}
-
     index = build_lpm_index([(r[0], r[1]) for r in pfx_rows])
 
     # Count pfx2as prefixes per corpus ASN (prefixes_in_scope)
@@ -160,6 +155,17 @@ def run_ark_ingest(
     # Download and parse
     filepath = download_nodes_as(target, dest_dir)
     actual_date = _date_from_filepath(filepath)
+
+    # If lookback resolved a different date, guard against duplicate inserts
+    if actual_date != target:
+        dup = conn.execute(
+            "SELECT COUNT(*) FROM ark_reachability WHERE measurement_date = ?",
+            [actual_date],
+        ).fetchone()[0]
+        if dup > 0:
+            conn.close()
+            return {"date": actual_date, "addresses_parsed": 0, "asns_updated": 0,
+                    "pfx2as_snapshot_date": pfx2as_date, "skipped": True}
 
     # Accumulate per-ASN and per-prefix
     per_asn: dict[int, dict] = {}
@@ -202,6 +208,18 @@ def run_ark_ingest(
             """,
             [actual_date, asn, data["observed"] > 0, data["observed"],
              n_prefixes, pfx2as_date, data["divergence"]],
+        )
+
+    # Write indeterminate rows for corpus ASNs with no IPv6 pfx2as coverage
+    for asn in sorted(corpus_asns - set(prefix_count.keys())):
+        conn.execute(
+            """
+            INSERT INTO ark_reachability
+                (measurement_date, asn, ipv6_reachable, addresses_observed,
+                 prefixes_in_scope, pfx2as_snapshot_date, asn_divergence_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [actual_date, asn, False, 0, 0, pfx2as_date, 0],
         )
 
     # Write ark_prefix_observations

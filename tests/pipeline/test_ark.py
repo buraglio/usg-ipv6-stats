@@ -167,7 +167,12 @@ def test_ingest_indeterminate_asn_has_zero_prefixes_in_scope(tmp_path):
 
     conn = get_connection(str(tmp_path / "test.duckdb"))
     count = conn.execute("SELECT COUNT(*) FROM ark_reachability").fetchone()[0]
-    assert count == 0  # no IPv6 pfx2as rows → nothing written
+    assert count == 1  # indeterminate row written with prefixes_in_scope=0
+    row = conn.execute(
+        "SELECT ipv6_reachable, prefixes_in_scope FROM ark_reachability WHERE asn = 64496"
+    ).fetchone()
+    assert row[0] is False
+    assert row[1] == 0
 
 
 def test_ingest_idempotent(tmp_path):
@@ -231,3 +236,85 @@ def test_backfill_skips_already_loaded(tmp_path):
 
     assert result["skipped"] == 1
     assert result["processed"] == 0
+
+
+def test_ingest_writes_indeterminate_rows_for_uncovered_corpus_asns(tmp_path):
+    """Corpus ASNs with no IPv6 pfx2as prefixes get a row with prefixes_in_scope=0."""
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    init_schema(conn)
+    _seed_db(conn,
+        pfx2as_rows=[("2024-03-15", "2001:db8::/32", 32, 64496, 6)],
+        corpus_rows=[
+            (64496, "GSA", "GSA", "cfo_act", "USGSA", "high", "arin",
+             "2024-03-15", "2024-03-15"),
+            (64497, "DHS", "DHS", "cfo_act", "USDHS", "high", "arin",
+             "2024-03-15", "2024-03-15"),
+        ],
+    )
+    conn.close()
+    nodes_file = _make_nodes_gz(tmp_path, "team-1.ipv6.20240315.nodes.as.gz",
+                                 "N 2001:db8::1 64496\n")
+
+    with patch("usg_ipv6.pipeline.ark.download_nodes_as", return_value=nodes_file):
+        run_ark_ingest(str(tmp_path / "test.duckdb"), date="2024-03-15",
+                       dest_dir=str(tmp_path))
+
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    rows = {r[0]: r for r in conn.execute(
+        "SELECT asn, ipv6_reachable, prefixes_in_scope FROM ark_reachability ORDER BY asn"
+    ).fetchall()}
+    assert len(rows) == 2
+    assert rows[64496][1] is True
+    assert rows[64496][2] == 1
+    assert rows[64497][1] is False
+    assert rows[64497][2] == 0  # indeterminate — no IPv6 pfx2as coverage
+
+
+def test_ingest_stores_actual_date_not_requested_date(tmp_path):
+    """When lookback resolves a different date, the stored date comes from the filename."""
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    init_schema(conn)
+    _seed_db(conn,
+        pfx2as_rows=[("2024-03-15", "2001:db8::/32", 32, 64496, 6)],
+        corpus_rows=[(64496, "GSA", "GSA", "cfo_act", "USGSA", "high", "arin",
+                      "2024-03-15", "2024-03-15")],
+    )
+    conn.close()
+    # File dated 2024-03-13 — lookback resolved two days earlier
+    nodes_file = _make_nodes_gz(tmp_path, "team-1.ipv6.20240313.nodes.as.gz",
+                                 "N 2001:db8::1 64496\n")
+
+    with patch("usg_ipv6.pipeline.ark.download_nodes_as", return_value=nodes_file):
+        result = run_ark_ingest(str(tmp_path / "test.duckdb"), date="2024-03-15",
+                                dest_dir=str(tmp_path))
+
+    assert result["date"] == "2024-03-13"
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    row = conn.execute("SELECT measurement_date FROM ark_reachability").fetchone()
+    assert str(row[0]) == "2024-03-13"
+
+
+def test_ingest_idempotent_when_lookback_resolves_different_date(tmp_path):
+    """Second call with the same requested date must skip, not crash with PK violation."""
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    init_schema(conn)
+    _seed_db(conn,
+        pfx2as_rows=[("2024-03-15", "2001:db8::/32", 32, 64496, 6)],
+        corpus_rows=[(64496, "GSA", "GSA", "cfo_act", "USGSA", "high", "arin",
+                      "2024-03-15", "2024-03-15")],
+    )
+    conn.close()
+    nodes_file = _make_nodes_gz(tmp_path, "team-1.ipv6.20240313.nodes.as.gz",
+                                 "N 2001:db8::1 64496\n")
+
+    with patch("usg_ipv6.pipeline.ark.download_nodes_as", return_value=nodes_file):
+        result1 = run_ark_ingest(str(tmp_path / "test.duckdb"), date="2024-03-15",
+                                  dest_dir=str(tmp_path))
+        result2 = run_ark_ingest(str(tmp_path / "test.duckdb"), date="2024-03-15",
+                                  dest_dir=str(tmp_path))
+
+    assert result1["date"] == "2024-03-13"
+    assert result2["skipped"] is True
+    conn = get_connection(str(tmp_path / "test.duckdb"))
+    count = conn.execute("SELECT COUNT(*) FROM ark_reachability").fetchone()[0]
+    assert count == 1
