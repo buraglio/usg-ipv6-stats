@@ -5,7 +5,21 @@ def get_connection(db_path: str) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(db_path)
 
 
+def _migrate_ark_reachability(conn: duckdb.DuckDBPyConnection) -> None:
+    """Drop old 3-column ark_reachability so init_schema can recreate it."""
+    try:
+        cols = {
+            row[0]
+            for row in conn.execute("DESCRIBE ark_reachability").fetchall()
+        }
+        if "addresses_observed" not in cols:
+            conn.execute("DROP TABLE ark_reachability")
+    except Exception:
+        pass  # table doesn't exist yet — init_schema will create it
+
+
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
+    _migrate_ark_reachability(conn)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS asn_corpus (
             asn             BIGINT PRIMARY KEY,
@@ -52,8 +66,24 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS ark_reachability (
-            measurement_date DATE NOT NULL,
-            asn              BIGINT NOT NULL,
-            ipv6_reachable   BOOLEAN NOT NULL
+            measurement_date      DATE    NOT NULL,
+            asn                   BIGINT  NOT NULL,
+            ipv6_reachable        BOOLEAN NOT NULL,
+            addresses_observed    INTEGER NOT NULL DEFAULT 0,
+            prefixes_in_scope     INTEGER NOT NULL DEFAULT 0,
+            pfx2as_snapshot_date  DATE    NOT NULL,
+            asn_divergence_count  INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (measurement_date, asn)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ark_prefix_observations (
+            measurement_date      DATE    NOT NULL,
+            prefix                VARCHAR NOT NULL,
+            our_asn               BIGINT  NOT NULL,
+            addresses_observed    INTEGER NOT NULL,
+            addresses_ark_match   INTEGER NOT NULL,
+            pfx2as_snapshot_date  DATE    NOT NULL,
+            PRIMARY KEY (measurement_date, prefix)
         )
     """)
