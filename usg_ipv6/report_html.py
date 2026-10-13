@@ -465,11 +465,14 @@ def _page(
   </p>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"
-  integrity="sha512-ejHEoMeGdLBm7sRe6MShI/kGU09bIVpOSyX6P1Vm7IHwvdRRh3bjKFOtU7K2NRcKFJX41MiWVKdEWRsQv9gg=="
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+  integrity="sha512-NqRhTU0DQNHNUO0pTx6zPLJ11YhOqj4MRcvv0+amxJk+re07ykGhFuhMmrQpfTRAUx8nQ4EcMuX/m8cz2K8vIQ=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 const DATA = {js_data};
+
+// asnChart declared before any IIFE so TDZ can't block showASN
+let asnChart = null;
 
 // ── Trend chart ───────────────────────────────────────────────────────────────
 (function() {{
@@ -526,8 +529,6 @@ const DATA = {js_data};
 }})();
 
 // ── ASN explorer ──────────────────────────────────────────────────────────────
-let asnChart = null;
-
 function filterASNs(q) {{
   const rows = document.querySelectorAll('#corpus-table .asn-row');
   q = q.toLowerCase().trim();
@@ -574,6 +575,10 @@ function showASN(asn) {{
   renderList(v6el, pfxData.v6, 6);
   renderList(v4el, pfxData.v4, 4);
 
+  // Show detail panel before chart creation so prefix lists are visible
+  detail.style.display = 'block';
+  detail.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+
   // History chart
   const hist = DATA.asn_history[key] || {{}};
   const histDates = Object.keys(hist).sort();
@@ -583,28 +588,29 @@ function showASN(asn) {{
   if (asnChart) {{ asnChart.destroy(); asnChart = null; }}
   const chartCtx = document.getElementById('asn-chart');
   if (histDates.length) {{
-    asnChart = new Chart(chartCtx, {{
-      type: 'bar',
-      data: {{
-        labels: histDates,
-        datasets: [
-          {{ label: 'IPv6', data: histV6, backgroundColor: 'rgba(9,105,218,0.7)' }},
-          {{ label: 'IPv4', data: histV4, backgroundColor: 'rgba(26,127,55,0.5)' }},
-        ],
-      }},
-      options: {{
-        responsive: true,
-        plugins: {{ legend: {{ position: 'top' }} }},
-        scales: {{ y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }} }},
-      }},
-    }});
-    chartCtx.style.display = '';
+    try {{
+      asnChart = new Chart(chartCtx, {{
+        type: 'bar',
+        data: {{
+          labels: histDates,
+          datasets: [
+            {{ label: 'IPv6', data: histV6, backgroundColor: 'rgba(9,105,218,0.7)' }},
+            {{ label: 'IPv4', data: histV4, backgroundColor: 'rgba(26,127,55,0.5)' }},
+          ],
+        }},
+        options: {{
+          responsive: true,
+          plugins: {{ legend: {{ position: 'top' }} }},
+          scales: {{ y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }} }},
+        }},
+      }});
+      chartCtx.style.display = '';
+    }} catch(e) {{
+      chartCtx.style.display = 'none';
+    }}
   }} else {{
     chartCtx.style.display = 'none';
   }}
-
-  detail.style.display = 'block';
-  detail.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
 
   // Highlight selected row
   document.querySelectorAll('.asn-row').forEach(r => r.classList.remove('selected'));
