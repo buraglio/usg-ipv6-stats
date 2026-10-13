@@ -73,34 +73,49 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     chart_v4_asns = [_dates_set[d].get(4, {}).get("a", 0) for d in chart_dates]
 
     # ── Latest-snapshot summary ───────────────────────────────────────────────
-    latest_ts = conn.execute(
-        "SELECT MAX(snapshot_ts) FROM prefix_records"
-    ).fetchone()[0]
+    # IPv4 (route-views2) and IPv6 (route-views6) ingest on separate schedules,
+    # so each af has its own latest snapshot_ts.  Using a single MAX() would
+    # show only whichever collector ran most recently.
+    latest_ts_rows = conn.execute("""
+        SELECT af, MAX(snapshot_ts) AS latest
+        FROM prefix_records
+        GROUP BY af
+    """).fetchall()
+    latest_ts_by_af: dict = {af: ts for af, ts in latest_ts_rows}
+    latest_ts4 = latest_ts_by_af.get(4)
+    latest_ts6 = latest_ts_by_af.get(6)
+    # Keep a single sentinel for gating downstream queries that need any data.
+    latest_ts = latest_ts4 or latest_ts6
 
     corpus_count = conn.execute("SELECT COUNT(*) FROM asn_corpus").fetchone()[0]
 
-    if latest_ts:
-        totals = {r[0]: r for r in conn.execute("""
+    totals: dict = {}
+    for af, ts in latest_ts_by_af.items():
+        row = conn.execute("""
             SELECT af,
                    COUNT(DISTINCT prefix)     AS prefixes,
                    COUNT(DISTINCT origin_asn) AS asns
-            FROM prefix_records WHERE snapshot_ts = ?
+            FROM prefix_records WHERE af = ? AND snapshot_ts = ?
             GROUP BY af
-        """, [latest_ts]).fetchall()}
-    else:
-        totals = {}
+        """, [af, ts]).fetchone()
+        if row:
+            totals[af] = row
 
     # ── By-tier ──────────────────────────────────────────────────────────────
-    if latest_ts:
-        by_tier = conn.execute("""
+    # Union the latest snapshot for each af so both families are represented.
+    if latest_ts_by_af:
+        af_clauses = " UNION ALL ".join(
+            f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
+            for af, ts in latest_ts_by_af.items()
+        )
+        by_tier = conn.execute(f"""
             SELECT c.tier, pr.af,
                    COUNT(DISTINCT pr.prefix)     AS prefixes,
                    COUNT(DISTINCT pr.origin_asn) AS asns
-            FROM prefix_records pr
+            FROM ({af_clauses}) pr
             JOIN asn_corpus c ON pr.origin_asn = c.asn
-            WHERE pr.snapshot_ts = ?
             GROUP BY c.tier, pr.af ORDER BY c.tier, pr.af
-        """, [latest_ts]).fetchall()
+        """).fetchall()
     else:
         by_tier = []
 
@@ -111,14 +126,17 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     """).fetchall()
 
     # ── Per-ASN current prefixes (for ASN explorer) ───────────────────────────
-    if latest_ts:
-        asn_prefix_rows = conn.execute("""
+    if latest_ts_by_af:
+        af_clauses_asn = " UNION ALL ".join(
+            f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
+            for af, ts in latest_ts_by_af.items()
+        )
+        asn_prefix_rows = conn.execute(f"""
             SELECT origin_asn, af, prefix
-            FROM prefix_records
-            WHERE snapshot_ts = ?
-              AND origin_asn IN (SELECT asn FROM asn_corpus)
+            FROM ({af_clauses_asn})
+            WHERE origin_asn IN (SELECT asn FROM asn_corpus)
             ORDER BY origin_asn, af, prefix
-        """, [latest_ts]).fetchall()
+        """).fetchall()
     else:
         asn_prefix_rows = []
 
