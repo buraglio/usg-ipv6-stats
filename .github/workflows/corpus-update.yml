@@ -6,6 +6,10 @@ name: Corpus Update
 # Manual run (workflow_dispatch): commits data/usg_asn_corpus.csv directly to
 #   main so the corpus is available immediately — use this for the initial
 #   bootstrap and for on-demand refreshes.
+#
+# After a manual run the updated asn_corpus table is also written into the
+# rolling DuckDB release so the GitHub Pages dashboard reflects the new
+# agencies immediately, without waiting for the next RouteViews ingest.
 
 on:
   schedule:
@@ -34,6 +38,14 @@ jobs:
 
       - name: Create data directories
         run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        # Preserves prefix_records and other tables — corpus.build only
+        # replaces the asn_corpus table, leaving historical data intact.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
 
       - name: Build corpus (ARIN WHOIS + CAIDA AS2Org)
         run: |
@@ -68,6 +80,30 @@ jobs:
           git commit -m "chore: update USG ASN corpus ${DATE} (manual refresh)"
           git push origin main
           echo "Corpus committed to main. The Publish workflow will create a versioned release."
+
+      # Upload the updated DuckDB so the GitHub Pages dashboard reflects new
+      # agencies immediately, without waiting for the next ingest workflow.
+      - name: Upload updated DuckDB to rolling release
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then
+            echo "No DuckDB to upload — skipping."
+            exit 0
+          fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Corpus update." \
+               --prerelease
+          echo "DuckDB uploaded to data-latest release."
+
+      # Trigger a pages rebuild so the dashboard reflects the updated corpus.
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true
 
       # Scheduled run: open a PR so corpus changes get reviewed before merge.
       - name: Create pull request (scheduled run)
