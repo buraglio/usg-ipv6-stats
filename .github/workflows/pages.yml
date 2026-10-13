@@ -13,6 +13,7 @@ on:
       - "RouteViews MRT Ingest"
       - "CAIDA Ark IPv6 Reachability Ingest"
       - "USG ASN Corpus Update"
+      - "IPv6 Hitlist Ingest"
     types: [completed]
   push:
     branches: [main]
