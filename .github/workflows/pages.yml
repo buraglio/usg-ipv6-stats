@@ -9,7 +9,10 @@ name: Deploy GitHub Pages
 
 on:
   workflow_run:
-    workflows: ["RouteViews MRT Ingest"]
+    workflows:
+      - "RouteViews MRT Ingest"
+      - "CAIDA Ark IPv6 Reachability Ingest"
+      - "USG ASN Corpus Update"
     types: [completed]
   push:
     branches: [main]
