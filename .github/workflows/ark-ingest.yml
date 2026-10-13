@@ -1,9 +1,10 @@
 name: CAIDA Ark IPv6 Reachability Ingest
 
-# Downloads the CAIDA Ark IPv6 nodes-as file, re-annotates each address
-# using our pfx2as LPM, and stores per-ASN reachability verdicts in DuckDB.
+# Computes IPv6 reachability for USG corpus ASNs from RouteViews BGP data
+# (CAIDA pfx2as rv6 snapshot). An ASN is IPv6-reachable if it has at least
+# one IPv6 prefix visible in the BGP table — the same methodology used by
+# NIST, APNIC, and Google IPv6 stats.
 #
-# Requires: RouteViews MRT Ingest must have run first (caida_pfx2as populated).
 # DuckDB lives in the rolling 'data-latest' GitHub Release.
 
 on:
