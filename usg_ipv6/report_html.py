@@ -12,15 +12,21 @@ DEFAULT_OUT = "web/index.html"
 _TIER_LABELS = {
     "cfo_act": "CFO Act",
     "dod": "DoD",
+    "federal_civilian": "Federal",
     "ic": "Intel Community",
     "independent": "Independent",
+    "judicial": "Judicial",
+    "legislative": "Legislative",
 }
 
 _TIER_DESCRIPTIONS = {
     "cfo_act": "The 24 cabinet-level and largest executive branch agencies named in the Chief Financial Officers Act of 1990.",
     "dod": "Department of Defense components and commands.",
+    "federal_civilian": "Independent federal agencies, commissions, and government corporations.",
     "ic": "Intelligence Community elements.",
     "independent": "Independent federal agencies and commissions.",
+    "judicial": "Federal judicial branch entities.",
+    "legislative": "Legislative branch agencies and support organizations.",
 }
 
 
@@ -1101,9 +1107,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   padding: 0.1rem 0.6rem; font-size: 0.78rem; font-weight: 500;
   background: #f0f2f5; color: #656d76; border: 1px solid #d0d7de;
 }
-.tier-tag.tier-cfo_act { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
-.tier-tag.tier-dod     { background: #ffd8b2; color: #953800; border-color: #ffc680; }
-.tier-tag.tier-ic      { background: #f3d2ff; color: #6639ba; border-color: #e2b8ff; }
+.tier-tag.tier-cfo_act         { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
+.tier-tag.tier-dod             { background: #ffd8b2; color: #953800; border-color: #ffc680; }
+.tier-tag.tier-federal_civilian{ background: #d2f9d2; color: #116329; border-color: #a8f0a8; }
+.tier-tag.tier-ic              { background: #f3d2ff; color: #6639ba; border-color: #e2b8ff; }
+.tier-tag.tier-judicial        { background: #fff3cd; color: #7d4e00; border-color: #ffd966; }
+.tier-tag.tier-legislative     { background: #ffe0e0; color: #9e2a2b; border-color: #ffb3b3; }
 
 .empty { color: var(--muted); padding: 1rem 0; font-size: 0.9rem; }
 .empty-inline { color: var(--muted); font-size: 0.85rem; font-style: italic; }

@@ -7,7 +7,7 @@ from rapidfuzz import fuzz
 
 from usg_ipv6.corpus.arin import fetch_asns_for_org, arin_reachable
 from usg_ipv6.corpus.caida import parse_as2org
-from usg_ipv6.corpus.federal_agencies import CFO_ACT_AGENCIES
+from usg_ipv6.corpus.federal_agencies import AGENCY_SEEDS
 from usg_ipv6.corpus.schema import AsnRecord, TIER_PRIORITY
 from usg_ipv6.db import get_connection, init_schema
 
@@ -57,7 +57,7 @@ def _build_from_arin(version: str) -> list[AsnRecord]:
 
     today = date.today().isoformat()
     records = []
-    for agency in CFO_ACT_AGENCIES:
+    for agency in AGENCY_SEEDS:
         for handle in agency["handles"]:
             for asn in fetch_asns_for_org(handle):
                 records.append(AsnRecord(
@@ -80,7 +80,7 @@ def _expand_from_caida(
     as2org = parse_as2org(as2org_path)
     known_asns = {r.asn for r in existing}
     today = date.today().isoformat()
-    agency_names = [a["name"] for a in CFO_ACT_AGENCIES]
+    agency_names = [a["name"] for a in AGENCY_SEEDS]
     new_records = []
     for asn, info in as2org.items():
         if asn in known_asns:
@@ -91,7 +91,7 @@ def _expand_from_caida(
             key=lambda x: x[1],
         )
         if best_score >= FUZZY_THRESHOLD:
-            agency = CFO_ACT_AGENCIES[agency_names.index(best_name)]
+            agency = AGENCY_SEEDS[agency_names.index(best_name)]
             new_records.append(AsnRecord(
                 asn=asn,
                 org_name=org_name,
