@@ -19,6 +19,9 @@ app.add_typer(run_app, name="run", help="Run ingest pipeline operations.")
 ark_app = typer.Typer(help="CAIDA Ark IPv6 reachability commands.", no_args_is_help=True)
 app.add_typer(ark_app, name="ark", help="CAIDA Ark IPv6 reachability commands.")
 
+hitlist_app = typer.Typer(help="IPv6 Hitlist responsive address commands.", no_args_is_help=True)
+app.add_typer(hitlist_app, name="hitlist", help="IPv6 Hitlist responsive address commands.")
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -492,6 +495,125 @@ def ark_gap(
     _table(
         ["ASN", "Agency", "Tier", "Addr Observed", "Prefixes"],
         [(r[0], r[1], r[2], r[3], r[4]) for r in rows],
+    )
+
+
+# ---------------------------------------------------------------------------
+# usg hitlist ingest
+# ---------------------------------------------------------------------------
+
+@hitlist_app.command("ingest")
+def hitlist_ingest(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    date: Optional[str] = typer.Option(
+        None, "--date", help="Observation date (YYYY-MM-DD). Default: today."
+    ),
+    dest_dir: str = typer.Option("data/raw", "--dest-dir", help="Download directory."),
+) -> None:
+    """Download IPv6 Hitlist and match responsive addresses against corpus prefixes."""
+    from usg_ipv6.pipeline.hitlist import run_hitlist_ingest
+    typer.echo(f"Hitlist ingest: date={date or 'today'}, db={db}")
+    result = run_hitlist_ingest(db, date=date, dest_dir=dest_dir)
+    if result["skipped"]:
+        typer.echo(f"Skipped — {result['observation_date']} already loaded.")
+    else:
+        typer.echo(
+            f"Done. observation_date={result['observation_date']}"
+            f"  hitlist_date={result['hitlist_date']}"
+            f"  scanned={result['total_scanned']:,}"
+            f"  matched={result['matched_addresses']:,}"
+            f"  asns_with_responses={result['asns_with_responses']}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# usg hitlist backfill
+# ---------------------------------------------------------------------------
+
+@hitlist_app.command("backfill")
+def hitlist_backfill(
+    since: str = typer.Argument(..., help="Start date, YYYY-MM-DD."),
+    until: str = typer.Argument(..., help="End date, YYYY-MM-DD."),
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    dest_dir: str = typer.Option("data/raw", "--dest-dir", help="Download directory."),
+) -> None:
+    """Backfill Hitlist observations between two dates (downloads file once, stamps each date)."""
+    from usg_ipv6.pipeline.hitlist import run_hitlist_backfill
+    try:
+        since_dt = datetime.fromisoformat(since)
+        until_dt = datetime.fromisoformat(until)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Hitlist backfill: {since} → {until}, db={db}")
+    result = run_hitlist_backfill(db, since_dt, until_dt, dest_dir=dest_dir)
+    typer.echo(
+        f"Done. processed={result['processed']}  skipped={result['skipped']}"
+        f"  failed={result['failed']}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# usg hitlist stats
+# ---------------------------------------------------------------------------
+
+@hitlist_app.command("stats")
+def hitlist_stats(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="Path to DuckDB file."),
+    date: Optional[str] = typer.Option(None, "--date", help="Observation date (default: latest)."),
+    asn: Optional[int] = typer.Option(None, "--asn", help="Filter by ASN."),
+    min_count: int = typer.Option(1, "--min-count", help="Minimum responsive_count to show."),
+    as_json: bool = typer.Option(False, "--json", is_flag=True, help="Output as JSON."),
+) -> None:
+    """Responsive IPv6 address counts per corpus ASN from the latest Hitlist observation."""
+    conn = _open(db)
+    odate = date or conn.execute(
+        "SELECT MAX(observation_date) FROM hitlist_observations"
+    ).fetchone()[0]
+    if odate is None:
+        typer.echo("No Hitlist data loaded. Run 'usg hitlist ingest' first.", err=True)
+        raise typer.Exit(1)
+
+    hitlist_date = conn.execute(
+        "SELECT hitlist_date FROM hitlist_observations WHERE observation_date = ? LIMIT 1",
+        [odate],
+    ).fetchone()
+    hitlist_date_str = str(hitlist_date[0]) if hitlist_date else "unknown"
+
+    clauses = ["ho.observation_date = ?", "ho.responsive_count >= ?"]
+    params: list[object] = [odate, min_count]
+    if asn is not None:
+        clauses.append("ho.asn = ?")
+        params.append(asn)
+
+    rows = conn.execute(
+        f"""
+        SELECT ho.asn, c.agency, ho.responsive_count, ho.aliased_count, c.tier
+        FROM hitlist_observations ho
+        JOIN asn_corpus c ON ho.asn = c.asn
+        WHERE {' AND '.join(clauses)}
+        ORDER BY ho.responsive_count DESC, c.agency
+        """,
+        params,
+    ).fetchall()
+    conn.close()
+
+    if as_json:
+        typer.echo(json.dumps({
+            "observation_date": str(odate),
+            "hitlist_date": hitlist_date_str,
+            "results": [
+                {"asn": r[0], "agency": r[1], "responsive_count": r[2],
+                 "aliased_count": r[3], "tier": r[4]}
+                for r in rows
+            ],
+        }, indent=2))
+        return
+
+    typer.echo(f"Observation : {odate}   Hitlist data: {hitlist_date_str}\n")
+    _table(
+        ["ASN", "Agency", "Responsive", "Aliased", "Tier"],
+        [(r[0], r[1], f"{r[2]:,}", f"{r[3]:,}", r[4]) for r in rows],
     )
 
 

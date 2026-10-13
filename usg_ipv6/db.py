@@ -87,3 +87,24 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (measurement_date, prefix)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS hitlist_observations (
+            observation_date  DATE    NOT NULL,
+            asn               BIGINT  NOT NULL,
+            responsive_count  INTEGER NOT NULL DEFAULT 0,
+            aliased_count     INTEGER NOT NULL DEFAULT 0,
+            hitlist_date      DATE    NOT NULL,
+            PRIMARY KEY (observation_date, asn)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS hitlist_addresses (
+            observation_date  DATE    NOT NULL,
+            address           VARCHAR NOT NULL,
+            asn               BIGINT  NOT NULL,
+            matched_prefix    VARCHAR NOT NULL,
+            is_aliased        BOOLEAN NOT NULL DEFAULT FALSE,
+            hitlist_date      DATE    NOT NULL,
+            PRIMARY KEY (observation_date, address)
+        )
+    """)

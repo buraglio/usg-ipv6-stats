@@ -18,6 +18,7 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Pipeline: incremental run](#pipeline-incremental-run)
 - [Pipeline: backfill](#pipeline-backfill)
 - [Ark reachability](#ark-reachability)
+- [IPv6 Hitlist: live endpoint detection](#ipv6-hitlist-live-endpoint-detection)
 - [Database schema](#database-schema)
 - [Python API](#python-api)
 - [Data sources](#data-sources)
@@ -64,16 +65,21 @@ make run
 # 3. Ingest the most recent CAIDA Ark IPv6 active-measurement file
 make ark
 
-# 4. Query with the CLI
+# 4. Ingest the TU Munich IPv6 Hitlist responsive-address file
+make hitlist
+
+# 5. Query with the CLI
 uv run usg stats
 uv run usg corpus --tier cfo_act
 uv run usg prefixes --af 6
 uv run usg ark stats
 uv run usg ark gap
+uv run usg hitlist stats
 ```
 
 For historical BGP analysis, replace step 2 with `make backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
 For historical Ark analysis, replace step 3 with `make ark-backfill SINCE=2021-01-01 UNTIL=2024-12-31`.
+For historical Hitlist analysis, replace step 4 with `make hitlist-backfill SINCE=2024-01-01 UNTIL=2024-12-31`.
 
 ---
 
@@ -215,6 +221,52 @@ uv run usg ark gap
 uv run usg ark gap --json
 ```
 
+### `usg hitlist ingest`
+
+Download and match the current TU Munich IPv6 Hitlist responsive-address file against corpus prefixes. Requires `caida_pfx2as` to contain IPv6 (af=6) rows (the `route-views6` collector must have been run first, or the hitlist GitHub Actions workflow handles this automatically).
+
+```bash
+uv run usg hitlist ingest                      # today as observation date
+uv run usg hitlist ingest --date 2024-10-01   # specific observation date
+uv run usg hitlist ingest --dest-dir data/raw  # custom download directory
+```
+
+### `usg hitlist backfill`
+
+Stamp a single downloaded hitlist file across multiple observation dates. The file is downloaded once; the same responsive-address data is recorded under each date in the range.
+
+```bash
+uv run usg hitlist backfill 2024-01-01 2024-12-31
+uv run usg hitlist backfill 2024-01-01 2024-12-31 --dest-dir data/raw
+```
+
+### `usg hitlist stats`
+
+Responsive-address counts per agency for a given observation date, ordered by count descending.
+
+```bash
+uv run usg hitlist stats                          # most recent date
+uv run usg hitlist stats --date 2024-10-01       # specific date
+uv run usg hitlist stats --asn 11974             # filter to one ASN
+uv run usg hitlist stats --min-count 10          # hide ASNs below threshold
+uv run usg hitlist stats --json
+```
+
+Example output:
+
+```text
+Observation date : 2024-10-04
+Hitlist date     : 2024-10-04
+Corpus ASNs      : 72
+
+Agency                    ASN     Responsive  Aliased
+------------------------  ------  ----------  -------
+Dept. of State            11974   142         0
+NASA                      297     87          12
+GSA                       5117    43          0
+...
+```
+
 ---
 
 ## Make targets
@@ -227,6 +279,8 @@ uv run usg ark gap --json
 | `make backfill` | Process all RIB snapshots in a date range |
 | `make ark` | Download and ingest the most recent CAIDA Ark IPv6 file |
 | `make ark-backfill` | Ingest all daily Ark files in a date range |
+| `make hitlist` | Download and ingest the current TU Munich IPv6 Hitlist file |
+| `make hitlist-backfill` | Stamp the hitlist across a date range |
 | `make test` | Run the full test suite |
 | `make lint` | Syntax-check all production modules |
 
@@ -236,7 +290,7 @@ All targets accept variable overrides on the command line (see [Configuration va
 
 ## GitHub Actions
 
-Five workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
+Six workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
 
 ### Corpus Update (`corpus-update.yml`)
 
@@ -288,11 +342,32 @@ Downloads the daily CAIDA Ark IPv6 `team-1.ipv6.YYYYMMDD.nodes.as.gz` file, re-a
 5. Writes one `ark_reachability` row per corpus ASN: `ipv6_reachable=TRUE` if observed, `FALSE` if the ASN has IPv6 pfx2as prefixes but no observed addresses, or `prefixes_in_scope=0` if the ASN has no IPv6 prefixes on record (indeterminate).
 6. Re-uploads the updated DuckDB and triggers the GitHub Pages rebuild.
 
+### IPv6 Hitlist Ingest (`hitlist-ingest.yml`)
+
+Downloads the TU Munich IPv6 Hitlist responsive-address file, matches each address against corpus ASN prefixes via LPM, and writes per-ASN responsive counts to `hitlist_observations` and matched addresses to `hitlist_addresses`.
+
+- **Scheduled**: Fridays 07:00 UTC (after RouteViews Monday and Ark Wednesday, so pfx2as IPv6 data is current)
+- **Manual dispatch**: accepts `date` (single observation date), `since`/`until` (backfill range)
+
+**Requires:** `caida_pfx2as` must contain IPv6 (af=6) rows. The workflow automatically downloads CAIDA pfx2as rv6 data before the hitlist step if none exist for the current month.
+
+**What it does:**
+
+1. Downloads the existing DuckDB from the `data-latest` release (`|| true` for first-run safety).
+2. Loads CAIDA pfx2as rv6 IPv6 data into the DB, skipping if current-month data already exists.
+3. Downloads `responsive-addresses.txt.xz` and `aliased-prefixes.txt.xz` from `alcatraz.net.in.tum.de`.
+4. Builds an LPM index from corpus IPv6 prefixes, then streams all responsive addresses, matching each against the index.
+5. Writes per-ASN counts to `hitlist_observations` (one row per corpus ASN per observation date) and matched addresses to `hitlist_addresses`.
+6. Addresses in aliased prefixes are flagged `is_aliased=TRUE` rather than excluded — the dashboard can show both total responsive and likely-real-host counts.
+7. Re-uploads the updated DuckDB and triggers the GitHub Pages rebuild.
+
+**Aliased prefixes:** When a prefix is "aliased," any address within it responds to probes (a router answers for the whole block). These are counted separately as `aliased_count` so over-counting from inflated host counts is visible.
+
 ### Deploy GitHub Pages (`pages.yml`)
 
 Generates the static HTML dashboard and deploys to GitHub Pages.
 
-- Triggers: after each RouteViews MRT Ingest run, on push to `main`, and on manual dispatch
+- Triggers: after each RouteViews MRT Ingest, Ark Reachability Ingest, Corpus Update, or Hitlist Ingest run; on push to `main`; and on manual dispatch
 - Downloads the DuckDB from `data-latest`, runs `usg_ipv6.report_html`, deploys `web/index.html`
 - Degrades gracefully: if no DuckDB exists yet, deploys a placeholder page
 
@@ -424,6 +499,40 @@ uv run usg ark gap
 
 ---
 
+## IPv6 Hitlist: live endpoint detection
+
+The [TU Munich IPv6 Hitlist Service](https://ipv6hitlist.github.io) publishes weekly lists of IPv6 addresses that responded to active probes. This is a fundamentally stronger signal than BGP reachability: a responsive address is a live host that answered, not just a route that exists.
+
+**BGP vs. Ark vs. Hitlist — three distinct questions:**
+
+| Source | Question answered |
+| ------- | ------------------ |
+| RouteViews BGP | Does this agency *advertise* IPv6 prefixes? |
+| CAIDA Ark | Are IPv6 addresses in those prefixes *reachable* from CAIDA vantage points? |
+| TU Munich Hitlist | Are specific IPv6 addresses *actively in use* (responded to probes)? |
+
+**Prerequisite:** `caida_pfx2as` must contain IPv6 (af=6) rows. Running `make run --collector route-views6` (or the RouteViews ingest GitHub Action with collector `route-views6`) loads IPv6 pfx2as data. The hitlist GitHub Actions workflow handles this automatically before each run.
+
+```bash
+# Ingest the current hitlist file
+make hitlist
+
+# Backfill a date range (downloads once, stamps each date)
+make hitlist-backfill SINCE=2024-01-01 UNTIL=2024-12-31
+
+# Responsive-address summary by agency
+uv run usg hitlist stats
+
+# Show counts for a specific date
+uv run usg hitlist stats --date 2024-10-04
+```
+
+**Data cadence:** The hitlist is updated weekly. The static download URL is updated in-place; the file date is read from the HTTP `Last-Modified` header and stored as `hitlist_date`. The `observation_date` is the date the ingest ran (or the date you supply for backfills).
+
+**Aliased prefixes:** Some prefixes are "aliased" — a router or network device responds to probes for every address in the block, artificially inflating apparent host counts. The hitlist publishes a companion `aliased-prefixes.txt.xz` file. Addresses matched to aliased prefixes are flagged `is_aliased=TRUE` in `hitlist_addresses` and their count is tracked separately as `aliased_count` in `hitlist_observations`. They are not excluded — you can choose to filter them in queries.
+
+---
+
 ## Database schema
 
 The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tables are created automatically on first run. ASN columns use `BIGINT` to accommodate the full 32-bit unsigned ASN range (0–4,294,967,295).
@@ -508,6 +617,31 @@ One row per (measurement date, prefix). Provides per-prefix granularity for dive
 | `addresses_ark_match` | INTEGER | Count where Ark's annotation agreed with our LPM |
 | `pfx2as_snapshot_date` | DATE | Which pfx2as snapshot was used |
 
+### `hitlist_observations`
+
+One row per (observation date, ASN). Written by `make hitlist` / `usg hitlist ingest`.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `observation_date` | DATE PK | Date the ingest ran (or the backfill date supplied) |
+| `asn` | BIGINT PK | Autonomous System Number |
+| `responsive_count` | INTEGER | Total hitlist addresses matched to this ASN's prefixes |
+| `aliased_count` | INTEGER | Subset of responsive addresses that fall in aliased prefixes |
+| `hitlist_date` | DATE | Date of the hitlist file used (from HTTP Last-Modified) |
+
+### `hitlist_addresses`
+
+One row per matched (observation date, address). Provides address-level detail for queries.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `observation_date` | DATE PK | Date the ingest ran |
+| `address` | VARCHAR PK | IPv6 address that responded to probes |
+| `asn` | BIGINT | ASN that owns the matched prefix |
+| `matched_prefix` | VARCHAR | Corpus IPv6 prefix the address fell within |
+| `is_aliased` | BOOLEAN | TRUE if the address's prefix is in the aliased-prefixes list |
+| `hitlist_date` | DATE | Date of the hitlist file used |
+
 **Example queries:**
 
 ```sql
@@ -572,6 +706,36 @@ JOIN asn_corpus c ON ar.asn = c.asn
 WHERE ar.measurement_date = (SELECT MAX(measurement_date) FROM ark_reachability)
   AND ar.addresses_observed > 0
 ORDER BY divergence_pct DESC;
+
+-- Hitlist: responsive address counts per agency (most recent observation)
+SELECT c.agency, c.tier, ho.asn,
+       ho.responsive_count, ho.aliased_count,
+       ho.responsive_count - ho.aliased_count AS likely_real,
+       ho.hitlist_date
+FROM hitlist_observations ho
+JOIN asn_corpus c ON ho.asn = c.asn
+WHERE ho.observation_date = (SELECT MAX(observation_date) FROM hitlist_observations)
+ORDER BY ho.responsive_count DESC;
+
+-- Hitlist: agencies with IPv6 prefixes but zero responsive addresses
+SELECT c.agency, c.tier, c.asn
+FROM asn_corpus c
+WHERE c.asn IN (
+    SELECT DISTINCT asn FROM caida_pfx2as WHERE af = 6
+)
+AND c.asn NOT IN (
+    SELECT asn FROM hitlist_observations
+    WHERE observation_date = (SELECT MAX(observation_date) FROM hitlist_observations)
+      AND responsive_count > 0
+)
+ORDER BY c.tier, c.agency;
+
+-- Hitlist: all matched addresses for a specific ASN
+SELECT address, matched_prefix, is_aliased, hitlist_date
+FROM hitlist_addresses
+WHERE observation_date = (SELECT MAX(observation_date) FROM hitlist_addresses)
+  AND asn = 297
+ORDER BY address;
 ```
 
 ---
@@ -636,6 +800,32 @@ result = run_ark_backfill(
 print(result)  # {"processed": N, "skipped": K, "failed": 0}
 ```
 
+### Hitlist pipeline
+
+```python
+from datetime import datetime
+from usg_ipv6.pipeline.hitlist import run_hitlist_ingest, run_hitlist_backfill
+
+# Ingest the current hitlist file (observation_date defaults to today)
+result = run_hitlist_ingest("data/usg_ipv6.duckdb")
+print(result)
+# {"observation_date": "2024-10-04", "hitlist_date": "2024-10-04",
+#  "total_scanned": 4821037, "matched_addresses": 312, "asns_with_responses": 14,
+#  "skipped": False}
+
+# Ingest with a specific observation date
+result = run_hitlist_ingest("data/usg_ipv6.duckdb", date="2024-01-15")
+
+# Backfill a date range (downloads once, stamps each date in range)
+result = run_hitlist_backfill(
+    "data/usg_ipv6.duckdb",
+    datetime(2024, 1, 1),
+    datetime(2024, 12, 31),
+    dest_dir="data/raw",
+)
+print(result)  # {"processed": 366, "skipped": 0, "failed": 0}
+```
+
 ### LPM index (low-level)
 
 ```python
@@ -682,6 +872,7 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | [CAIDA Ark IPv6](https://publicdata.caida.org/datasets/topology/ark/ipv6/probe-data/team-1/) | Active-measurement IPv6 reachability (daily) | Public HTTP, no auth |
 | [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping (published 1st of each month) | Public HTTP, no auth |
 | [ARIN WHOIS REST API](https://www.arin.net/resources/registry/whois/rws/api/) | Authoritative ASN registration | Public REST API, no auth |
+| [TU Munich IPv6 Hitlist](https://ipv6hitlist.github.io) | Verified responsive IPv6 addresses (weekly) | Public HTTP, no auth |
 
 **ARIN in CI:** ARIN WHOIS is unreachable from GitHub Actions IP ranges. A fast pre-flight check (`arin_reachable()`) detects this and skips ARIN queries rather than burning through retries, falling back to CAIDA-only corpus building.
 
@@ -695,7 +886,7 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | `COLLECTOR` | `route-views2` | RouteViews collector name |
 | `SINCE` | `2021-01-01` | Backfill start date (ISO 8601) |
 | `UNTIL` | `2024-12-31` | Backfill end date (ISO 8601) |
-| `AS2ORG` | _(empty — auto-download)_ | Path to a local CAIDA AS2Org file; if unset, the most recent monthly file is downloaded automatically |
+| `AS2ORG` | *(empty — auto-download)* | Path to a local CAIDA AS2Org file; if unset, the most recent monthly file is downloaded automatically |
 
 ---
 
@@ -704,7 +895,7 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 ```text
 usg_ipv6/
   db.py                  # DuckDB connection and schema initialisation
-  cli.py                 # usg CLI (typer): stats, corpus, prefixes, snapshots, run
+  cli.py                 # usg CLI (typer): stats, corpus, prefixes, snapshots, run, ark, hitlist
   report_html.py         # Static HTML report generator for GitHub Pages
   corpus/
     federal_agencies.py  # Seed list: 24 CFO Act agencies and ARIN handles
@@ -720,12 +911,14 @@ usg_ipv6/
     runner.py            # Orchestrator: run_incremental, run_backfill
     lpm.py               # Stdlib-only longest-prefix-match engine (IPv6)
     ark.py               # CAIDA Ark downloader, parser, and ingest orchestrator
+    hitlist.py           # TU Munich IPv6 Hitlist downloader, matcher, and ingest orchestrator
 
 .github/workflows/
   corpus-update.yml      # Weekly corpus rebuild; manual dispatch commits to main
   routeviews-ingest.yml  # Weekly MRT ingest; updates data-latest release
   routeviews-backfill.yml# Manual historical backfill
   ark-ingest.yml         # Wednesday Ark IPv6 reachability ingest
+  hitlist-ingest.yml     # Friday IPv6 Hitlist responsive-address ingest
   publish.yml            # Versioned corpus release on push to main
   pages.yml              # Static HTML dashboard → GitHub Pages
 
@@ -733,6 +926,7 @@ tests/
   conftest.py            # Shared pytest fixtures (in-memory DuckDB)
   corpus/                # Unit tests for corpus modules
   pipeline/              # Unit tests for pipeline modules
+    test_hitlist.py      # 18 network-free tests for hitlist ingest
   test_db.py             # Schema tests
   test_integration.py    # End-to-end mocked pipeline smoke test
 
