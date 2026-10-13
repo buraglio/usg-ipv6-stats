@@ -185,6 +185,84 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
             "gap_rows": gap_rows,
         }
 
+    # ── IPv6 Hitlist ──────────────────────────────────────────────────────────
+    hitlist_data = None
+    hitlist_asn_map: dict = {}
+    try:
+        hitlist_count = conn.execute(
+            "SELECT COUNT(*) FROM hitlist_observations"
+        ).fetchone()[0]
+    except Exception:
+        hitlist_count = 0
+
+    if hitlist_count > 0:
+        obs_date = conn.execute(
+            "SELECT MAX(observation_date) FROM hitlist_observations"
+        ).fetchone()[0]
+
+        summary = conn.execute("""
+            SELECT SUM(responsive_count), SUM(aliased_count),
+                   COUNT(CASE WHEN responsive_count > 0 THEN 1 END),
+                   MAX(hitlist_date)
+            FROM hitlist_observations WHERE observation_date = ?
+        """, [obs_date]).fetchone()
+
+        agency_rows = conn.execute("""
+            SELECT c.agency, c.tier, ho.asn,
+                   ho.responsive_count, ho.aliased_count,
+                   ho.responsive_count - ho.aliased_count AS likely_real
+            FROM hitlist_observations ho
+            JOIN asn_corpus c ON ho.asn = c.asn
+            WHERE ho.observation_date = ?
+            ORDER BY ho.responsive_count DESC, c.agency
+        """, [obs_date]).fetchall()
+
+        if latest_ts:
+            gap_rows_hitlist = conn.execute("""
+                SELECT c.agency, c.tier, ho.asn
+                FROM hitlist_observations ho
+                JOIN asn_corpus c ON ho.asn = c.asn
+                WHERE ho.observation_date = ?
+                  AND ho.responsive_count = 0
+                  AND ho.asn IN (
+                      SELECT DISTINCT origin_asn FROM prefix_records
+                      WHERE af = 6 AND snapshot_ts = ?
+                  )
+                ORDER BY c.tier, c.agency
+            """, [obs_date, latest_ts]).fetchall()
+        else:
+            gap_rows_hitlist = []
+
+        trend_rows = conn.execute("""
+            SELECT observation_date::VARCHAR AS date,
+                   SUM(responsive_count) AS responsive,
+                   SUM(aliased_count)    AS aliased
+            FROM hitlist_observations
+            GROUP BY observation_date
+            ORDER BY observation_date
+        """).fetchall()
+
+        hitlist_data = {
+            "obs_date": str(obs_date),
+            "hitlist_date": str(summary[3]),
+            "total_responsive": summary[0] or 0,
+            "total_aliased": summary[1] or 0,
+            "asns_with_responses": summary[2] or 0,
+            "corpus_count": corpus_count,
+            "agency_rows": agency_rows,
+            "gap_rows": gap_rows_hitlist,
+            "trend_rows": trend_rows,
+        }
+
+        asn_hl_rows = conn.execute("""
+            SELECT asn, responsive_count, aliased_count
+            FROM hitlist_observations WHERE observation_date = ?
+        """, [obs_date]).fetchall()
+        hitlist_asn_map = {
+            str(r[0]): {"responsive": r[1], "aliased": r[2]}
+            for r in asn_hl_rows
+        }
+
     conn.close()
 
     # ── Build embedded JSON for client-side JS ────────────────────────────────
@@ -196,6 +274,9 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         "v4_asns": chart_v4_asns,
         "asn_prefixes": asn_prefixes,
         "asn_history": asn_history,
+        "hitlist_asns": hitlist_asn_map,
+        "hitlist_dates": [r[0] for r in hitlist_data["trend_rows"]] if hitlist_data else [],
+        "hitlist_responsive": [r[1] for r in hitlist_data["trend_rows"]] if hitlist_data else [],
     }, separators=(",", ":"))
 
     html_out = _page(
@@ -207,6 +288,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         totals=totals,
         by_tier=by_tier,
         ark_data=ark_data,
+        hitlist_data=hitlist_data,
         js_data=js_data,
     )
     Path(out_path).write_text(html_out, encoding="utf-8")
@@ -239,7 +321,7 @@ def _page_no_data(generated_at: str) -> str:
 
 def _page(
     generated_at, latest_ts, corpus_count, corpus_rows,
-    snap_rows, totals, by_tier, ark_data, js_data,
+    snap_rows, totals, by_tier, ark_data, hitlist_data, js_data,
 ) -> str:
     snap_label = f"Latest snapshot: {latest_ts}" if latest_ts else "No routing data yet"
 
@@ -303,6 +385,9 @@ def _page(
     # ── IPv6 reachability section ─────────────────────────────────────────────
     ark_section = _ark_section(ark_data)
 
+    # ── Hitlist section ───────────────────────────────────────────────────────
+    hl_section = _hitlist_section(hitlist_data)
+
     # ── Corpus table (used by ASN explorer JS too) ────────────────────────────
     corpus_body = ""
     if corpus_rows:
@@ -349,6 +434,7 @@ def _page(
   <a href="#trends">Trends</a>
   <a href="#by-tier">By Tier</a>
   <a href="#reachability">IPv6 Reachability</a>
+  <a href="#hitlist">Live Endpoints</a>
   <a href="#asn-explorer">ASN Explorer</a>
   <a href="#data-sources">Data Sources</a>
 </nav>
@@ -393,6 +479,8 @@ def _page(
 
 {ark_section}
 
+{hl_section}
+
 <section id="asn-explorer">
   <h2>ASN Explorer</h2>
   <p class="section-blurb">
@@ -420,6 +508,14 @@ def _page(
         <div>
           <h4>IPv4 Prefixes <span id="detail-v4-count" class="count-badge v4"></span></h4>
           <div id="detail-v4" class="prefix-list"></div>
+        </div>
+      </div>
+      <div id="detail-hitlist" class="detail-hitlist" style="display:none">
+        <h4>Live IPv6 endpoints (Hitlist)</h4>
+        <div class="hitlist-chips">
+          <span class="hchip responsive">Responsive: <strong id="detail-hl-responsive">—</strong></span>
+          <span class="hchip aliased">Aliased: <strong id="detail-hl-aliased">—</strong></span>
+          <span class="hchip real">Likely real: <strong id="detail-hl-real">—</strong></span>
         </div>
       </div>
       <div class="asn-chart-wrap">
@@ -528,6 +624,44 @@ let asnChart = null;
   }});
 }})();
 
+// ── Hitlist trend chart ───────────────────────────────────────────────────────
+(function() {{
+  const ctx = document.getElementById('hitlist-trend-chart');
+  if (!ctx) return;
+  if (!DATA.hitlist_dates.length) {{
+    ctx.parentElement.innerHTML =
+      '<p class="empty" style="padding:2rem">No hitlist trend data yet.</p>';
+    return;
+  }}
+  new Chart(ctx, {{
+    type: 'line',
+    data: {{
+      labels: DATA.hitlist_dates,
+      datasets: [{{
+        label: 'Responsive IPv6 Addresses',
+        data: DATA.hitlist_responsive,
+        borderColor: '#0969da',
+        backgroundColor: 'rgba(9,105,218,0.08)',
+        tension: 0.3, fill: true, pointRadius: 5,
+      }}],
+    }},
+    options: {{
+      responsive: true,
+      interaction: {{ mode: 'index', intersect: false }},
+      plugins: {{
+        legend: {{ position: 'top' }},
+        tooltip: {{ callbacks: {{
+          label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.parsed.y.toLocaleString()}}`
+        }} }},
+      }},
+      scales: {{
+        y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }},
+        x: {{ ticks: {{ maxRotation: 45 }} }},
+      }},
+    }},
+  }});
+}})();
+
 // ── ASN explorer ──────────────────────────────────────────────────────────────
 function filterASNs(q) {{
   const rows = document.querySelectorAll('#corpus-table .asn-row');
@@ -574,6 +708,18 @@ function showASN(asn) {{
   }};
   renderList(v6el, pfxData.v6, 6);
   renderList(v4el, pfxData.v4, 4);
+
+  // Hitlist live-endpoint data
+  const hlBox = document.getElementById('detail-hitlist');
+  const hlData = DATA.hitlist_asns[key];
+  if (hlData !== undefined) {{
+    document.getElementById('detail-hl-responsive').textContent = hlData.responsive.toLocaleString();
+    document.getElementById('detail-hl-aliased').textContent    = hlData.aliased.toLocaleString();
+    document.getElementById('detail-hl-real').textContent       = (hlData.responsive - hlData.aliased).toLocaleString();
+    hlBox.style.display = '';
+  }} else {{
+    hlBox.style.display = 'none';
+  }}
 
   // Show detail panel before chart creation so prefix lists are visible
   detail.style.display = 'block';
@@ -633,6 +779,121 @@ function closeASN() {{
 
 </body>
 </html>"""
+
+
+def _hitlist_section(hitlist_data) -> str:
+    if hitlist_data is None:
+        return """
+<section id="hitlist">
+  <h2>Live IPv6 Endpoints (Hitlist)</h2>
+  <p class="section-blurb">
+    The <a href="https://ipv6hitlist.github.io">TU Munich IPv6 Hitlist</a> provides
+    weekly lists of IPv6 addresses verified to respond to active probes — a stronger
+    signal than a BGP route existing. No hitlist data has been ingested yet.
+  </p>
+  <p class="empty">
+    Run <code>make hitlist</code> or trigger the
+    <strong>IPv6 Hitlist Ingest</strong> workflow to populate this section.
+    Requires <code>route-views6</code> pfx2as data (run RouteViews ingest with
+    <code>collector: route-views6</code> first).
+  </p>
+</section>"""
+
+    d = hitlist_data
+    likely_real = d["total_responsive"] - d["total_aliased"]
+    resp_pct = (f"{100 * d['asns_with_responses'] / d['corpus_count']:.1f}%"
+                if d["corpus_count"] else "—")
+
+    def _card(cls, label, value, sub=""):
+        return (f'<div class="stat-card {cls}">'
+                f'<div class="label">{label}</div>'
+                f'<div class="value">{value}</div>'
+                f'{"<div class=sub>" + sub + "</div>" if sub else ""}</div>')
+
+    cards = "".join([
+        _card("ipv6", "ASNs with Live Hosts", resp_pct,
+              f"{d['asns_with_responses']} of {d['corpus_count']} corpus ASNs"),
+        _card("ipv6b", "Responsive Addresses",
+              f"{d['total_responsive']:,}", "verified probe responses"),
+        _card("ipv4", "Likely Real Hosts",
+              f"{likely_real:,}", "non-aliased responsive addresses"),
+        _card("indet", "Aliased",
+              f"{d['total_aliased']:,}", "in aliased prefixes (router artifacts)"),
+    ])
+
+    # ── Per-agency table ──────────────────────────────────────────────────────
+    if d["agency_rows"]:
+        tbl_body = "".join(
+            f"<tr>"
+            f"<td>{_esc(r[0])}</td>"
+            f"<td><span class='tier-tag tier-{_esc(r[1])}'>{_tier_label(r[1])}</span></td>"
+            f"<td><code>{_esc(r[2])}</code></td>"
+            f"<td class='num'>{r[3]:,}</td>"
+            f"<td class='num'>{r[5]:,}</td>"
+            f"<td class='num'>{r[4]:,}</td>"
+            f"</tr>"
+            for r in d["agency_rows"]
+        )
+        agency_tbl = _table(
+            ["Agency", "Tier", "ASN", "Responsive", "Likely Real", "Aliased"],
+            tbl_body,
+        )
+    else:
+        agency_tbl = "<p class='empty'>No per-agency data available.</p>"
+
+    # ── Gap: BGP IPv6 but zero hitlist responses ──────────────────────────────
+    if d["gap_rows"]:
+        gap_body = "".join(
+            f"<tr><td>{_esc(r[0])}</td>"
+            f"<td><span class='tier-tag tier-{_esc(r[1])}'>{_tier_label(r[1])}</span></td>"
+            f"<td><code>{_esc(r[2])}</code></td></tr>"
+            for r in d["gap_rows"]
+        )
+        gap_content = _table(["Agency", "Tier", "ASN"], gap_body)
+        gap_note = (f"{len(d['gap_rows'])} ASN(s) advertise IPv6 BGP prefixes "
+                    f"but had zero hitlist-responsive addresses")
+    else:
+        gap_content = "<p class='empty'>All assessed ASNs have at least one responsive IPv6 address. 🎉</p>"
+        gap_note = "No gap ASNs detected"
+
+    return f"""
+<section id="hitlist">
+  <h2>Live IPv6 Endpoints (Hitlist)</h2>
+  <p class="section-blurb">
+    The <a href="https://ipv6hitlist.github.io">TU Munich IPv6 Hitlist</a> publishes
+    weekly lists of IPv6 addresses that responded to active probes — a stronger
+    signal than BGP reachability. Observation date:
+    <strong>{_esc(d['obs_date'])}</strong> · Hitlist file date:
+    <strong>{_esc(d['hitlist_date'])}</strong>.
+    <em>Aliased</em> addresses fall in prefixes where any address responds
+    (router artifacts); <em>likely real</em> excludes these.
+  </p>
+  <div class="stat-grid">{cards}</div>
+
+  <h3 style="margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600">
+    Responsive addresses by agency
+  </h3>
+  <div class="card" style="overflow-x:auto;margin-bottom:1.5rem">{agency_tbl}</div>
+
+  <h3 style="margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600">
+    Responsive address trend
+  </h3>
+  <p class="section-blurb" style="margin-bottom:0.75rem">
+    Total responsive IPv6 addresses across all corpus ASNs per weekly hitlist observation.
+  </p>
+  <div class="chart-wrap card" style="margin-bottom:1.5rem">
+    <canvas id="hitlist-trend-chart" height="100"></canvas>
+  </div>
+
+  <h3 style="margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600">
+    Gap: IPv6 BGP prefix but zero responsive addresses
+  </h3>
+  <p class="section-blurb" style="margin-bottom:0.75rem">
+    {_esc(gap_note)}. These agencies announce IPv6 routes but no
+    addresses in those prefixes responded to hitlist probes.
+  </p>
+  {gap_content}
+</section>"""
 
 
 def _ark_section(ark_data) -> str:
@@ -888,6 +1149,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .count-badge.v6 { background: #ddf4ff; color: #0550ae; }
 .count-badge.v4 { background: #dafbe1; color: #116329; }
 .asn-chart-wrap h4 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.6rem; }
+
+.detail-hitlist { margin-bottom: 1rem; }
+.detail-hitlist h4 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; }
+.hitlist-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.hchip {
+  padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.82rem;
+  border: 1px solid var(--border);
+}
+.hchip.responsive { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
+.hchip.aliased    { background: #fff8c5; color: #9a6700; border-color: #e3b341; }
+.hchip.real       { background: #dafbe1; color: #116329; border-color: #56d364; }
 
 footer {
   text-align: center; padding: 2rem 1rem;
