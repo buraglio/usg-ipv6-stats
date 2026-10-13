@@ -578,7 +578,8 @@ def _page(
     <a href="http://www.routeviews.org/">RouteViews MRT</a> ·
     <a href="https://www.arin.net/resources/registry/whois/">ARIN WHOIS</a> ·
     <a href="https://www.caida.org/catalog/datasets/as-organizations/">CAIDA AS2Org</a> ·
-    <a href="https://publicdata.caida.org/datasets/routing/routeviews6-prefix2as/">CAIDA pfx2as rv6</a>
+    <a href="https://publicdata.caida.org/datasets/routing/routeviews6-prefix2as/">CAIDA pfx2as rv6</a> ·
+    <a href="https://ipv6hitlist.github.io/">TU Munich IPv6 Hitlist</a>
   </p>
   <p style="margin-top:0.4rem">
     <a href="https://github.com/buraglio/usg-ipv6-stats">github.com/buraglio/usg-ipv6-stats</a>
