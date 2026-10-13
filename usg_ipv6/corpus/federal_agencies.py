@@ -2,7 +2,7 @@ AGENCY_SEEDS = [
     # ── CFO Act agencies (24 cabinet / largest executive) ──────────────────
     {"name": "Department of Agriculture",                      "handles": ["USDA", "USDAAGSEC"],        "tier": "cfo_act"},
     {"name": "Department of Commerce",                         "handles": ["USDOC"],                    "tier": "cfo_act"},
-    {"name": "Department of Defense",                          "handles": ["DOD-NIC", "DISA-HOSTMAST"], "tier": "dod"},
+    {"name": "Department of Defense",                          "handles": ["USDDD", "DNIC"],            "tier": "dod"},
     {"name": "Department of Education",                        "handles": ["USED"],                     "tier": "cfo_act"},
     {"name": "Department of Energy",                           "handles": ["DOE-ISC"],                  "tier": "cfo_act"},
     {"name": "Department of Health and Human Services",        "handles": ["DHHS"],                     "tier": "cfo_act"},
@@ -26,8 +26,15 @@ AGENCY_SEEDS = [
     {"name": "U.S. Agency for International Development",      "handles": ["USAID-NOC"],                "tier": "cfo_act"},
 
     # ── DoD components ─────────────────────────────────────────────────────
+    # DOD-NIC and DISA-HOSTMAST are deprecated (RDAP 404); replaced by USDDD/DNIC and DISA-24.
+    {"name": "Defense Advanced Research Projects Agency",      "handles": ["DARPA-2"],                  "tier": "dod"},
+    {"name": "Defense Information Systems Agency",             "handles": ["DISA-24"],                  "tier": "dod"},
+    {"name": "Department of the Air Force",                    "handles": ["USAF", "7ESG", "AFSC-43"],  "tier": "dod"},
     {"name": "Department of the Army",                         "handles": ["DA-131"],                   "tier": "dod"},
-    {"name": "Department of the Air Force",                    "handles": ["USAF"],                     "tier": "dod"},
+    {"name": "Department of the Navy",                         "handles": ["DNH-5", "DNH-6", "NIWCA"], "tier": "dod"},
+    {"name": "National Geospatial-Intelligence Agency",        "handles": ["NGA-30", "NGA-24"],         "tier": "dod"},
+    {"name": "US Marine Corps",                                "handles": ["UNOC"],                     "tier": "dod"},
+    {"name": "US Special Operations Command",                  "handles": ["SOC-22"],                   "tier": "dod"},
 
     # ── Independent / federal civilian agencies ────────────────────────────
     {"name": "Board of Governors of the Federal Reserve",      "handles": ["FEDER-67"],                 "tier": "federal_civilian"},
