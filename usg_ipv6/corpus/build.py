@@ -80,12 +80,41 @@ def _expand_from_caida(
     as2org = parse_as2org(as2org_path)
     known_asns = {r.asn for r in existing}
     today = date.today().isoformat()
+
+    # CAIDA org_id format is "{ARIN-HANDLE}-ARIN" or "{ARIN-HANDLE}-Z-ARIN".
+    # Build a lookup for both variants so ORNL→ORNL-Z-ARIN, BNL→BNL-ARIN, etc.
+    handles_to_agency: dict[str, dict] = {}
+    for agency in AGENCY_SEEDS:
+        for handle in agency["handles"]:
+            handles_to_agency[f"{handle}-ARIN"] = agency
+            handles_to_agency[f"{handle}-Z-ARIN"] = agency
+
     agency_names = [a["name"] for a in AGENCY_SEEDS]
     new_records = []
     for asn, info in as2org.items():
         if asn in known_asns:
             continue
         org_name = info["org_name"]
+        org_id = info["org_id"]
+
+        # Primary: exact ARIN handle match via CAIDA org_id
+        if org_id in handles_to_agency:
+            agency = handles_to_agency[org_id]
+            new_records.append(AsnRecord(
+                asn=asn,
+                org_name=org_name,
+                agency=agency["name"],
+                tier=agency["tier"],
+                arin_org_handle=org_id,
+                confidence="high",
+                sources=["caida"],
+                last_verified=today,
+                corpus_version=version,
+            ))
+            known_asns.add(asn)
+            continue
+
+        # Fallback: fuzzy org name match
         best_name, best_score = max(
             ((name, fuzz.token_sort_ratio(org_name, name)) for name in agency_names),
             key=lambda x: x[1],

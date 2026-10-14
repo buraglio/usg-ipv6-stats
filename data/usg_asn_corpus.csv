@@ -1,121 +1,1404 @@
 asn,org_name,agency,tier,arin_org_handle,confidence,sources,last_verified,corpus_version
-16,Lawrence Berkeley National Laboratory,Lawrence Berkeley National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-23,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-24,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-41,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-43,Brookhaven National Laboratory,Brookhaven National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-44,Lawrence Livermore National Laboratory,Lawrence Livermore National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-45,Lawrence Livermore National Laboratory,Lawrence Livermore National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-50,Oak Ridge National Laboratory,Oak Ridge National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-68,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-75,Argonne National Laboratory,Argonne National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-79,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-102,U.S. National Science Foundation,National Science Foundation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-270,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-297,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-372,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-377,Sandia National Laboratories,Sandia National Laboratories,doe_lab,,medium,caida,2026-10-14,2026-10-14
-550,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-682,Oak Ridge National Laboratory,Oak Ridge National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-683,Argonne National Laboratory,Argonne National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-771,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1202,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1254,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1262,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1263,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1316,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1701,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1749,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1829,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-1839,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-1843,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1844,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1845,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1846,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1847,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1848,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1915,National Science Foundation,National Science Foundation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-1999,U.S. House of Representatives,U.S. House of Representatives,legislative,,medium,caida,2026-10-14,2026-10-14
-2142,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-2143,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-2274,Congressional Budget Office,Congressional Budget Office,legislative,,medium,caida,2026-10-14,2026-10-14
-2384,Architect of the Capitol,Architect of the Capitol,legislative,,medium,caida,2026-10-14,2026-10-14
-2532,Library of Congress,Library of Congress,legislative,,medium,caida,2026-10-14,2026-10-14
-2576,U. S. Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-2581,U.S. Government Accountability Office,Government Accountability Office,legislative,,medium,caida,2026-10-14,2026-10-14
-2714,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3113,U.S. Department of Commerce,Department of Commerce,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3114,Department of Justice,Department of Justice,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3134,U.S. Agency for International Development,U.S. Agency for International Development,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3138,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3143,U.S. Department of Veterans Affairs,Department of Veterans Affairs,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3152,Fermi National Accelerator Laboratory (Fermilab),Fermi National Accelerator Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-3380,Princeton Plasma Physics Laboratory,Princeton Plasma Physics Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-3387,U.S. Department of State,Department of State,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3395,Commonwealth Department of Human Services and Health,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3495,US Senate,U.S. Senate,legislative,,medium,caida,2026-10-14,2026-10-14
-3562,Sandia National Laboratories,Sandia National Laboratories,doe_lab,,medium,caida,2026-10-14,2026-10-14
-3671,SLAC National Accelerator Laboratory,SLAC National Accelerator Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-3705,U.S. Government Publishing Office,Government Publishing Office,legislative,,medium,caida,2026-10-14,2026-10-14
-3760,Texas Department of Agriculture,Department of Agriculture,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3781,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3788,Texas Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-3930,Federal Energy Regulatory Commission,Federal Energy Regulatory Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-6406,Thomas Jefferson National Accelerator Facility,Thomas Jefferson National Accelerator Facility,doe_lab,,medium,caida,2026-10-14,2026-10-14
-6966,U.S. Department of State,Department of State,cfo_act,,medium,caida,2026-10-14,2026-10-14
-8076,Department of Housing and Urban Development,Department of Housing and Urban Development,cfo_act,,medium,caida,2026-10-14,2026-10-14
-10343,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-10371,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-10384,Tennessee Valley Authority,Tennessee Valley Authority,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-10442,U.S. Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-14,2026-10-14
-10702,Idaho National Laboratory,Idaho National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-10888,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-11405,Environmental Protection Agency,Environmental Protection Agency,cfo_act,,medium,caida,2026-10-14,2026-10-14
-11678,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-14,2026-10-14
-11873,U.S. Agency for International Development,U.S. Agency for International Development,cfo_act,,medium,caida,2026-10-14,2026-10-14
-11974,US Department of State,Department of State,cfo_act,,medium,caida,2026-10-14,2026-10-14
-11985,Social Security Administration,Social Security Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-12037,Federal Deposit Insurance Corporation,Federal Deposit Insurance Corporation,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-14298,Environmental Protection Agency,Environmental Protection Agency,cfo_act,,medium,caida,2026-10-14,2026-10-14
-14702,Idaho National Laboratory,Idaho National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-15029,U.S. Department of Health & Human Services,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-14,2026-10-14
-15130,U. S. Department of Justice,Department of Justice,cfo_act,,medium,caida,2026-10-14,2026-10-14
-15196,Maryland Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-17107,Georgia Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-19050,U.S. Department of Health & Human Services,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-14,2026-10-14
-20301,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-21556,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-21617,National Archives and Records Administration,National Archives and Records Administration,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-21633,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-14,2026-10-14
-22238,Defense Advanced Research Projects Agency(DARPA),Defense Advanced Research Projects Agency,dod,,medium,caida,2026-10-14,2026-10-14
-22284,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-14,2026-10-14
-22523,State of NM Administrative Office of the Courts,Administrative Office of the U.S. Courts,judicial,,medium,caida,2026-10-14,2026-10-14
-22767,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-24313,NSW Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-14,2026-10-14
-25640,Hawaii Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-14,2026-10-14
-26229,U.S. Securities & Exchange Commission,Securities and Exchange Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-29992,U.S. Department of Veterans Affairs,Department of Veterans Affairs,cfo_act,,medium,caida,2026-10-14,2026-10-14
-32982,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-14,2026-10-14
-39983,Pension Benefit Guaranty Corp.,Pension Benefit Guaranty Corporation,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-40158,Department of Homeland Security,Department of Homeland Security,cfo_act,,medium,caida,2026-10-14,2026-10-14
-46846,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-14,2026-10-14
-53545,Administrative Office of the Courts,Administrative Office of the U.S. Courts,judicial,,medium,caida,2026-10-14,2026-10-14
-53554,National Credit Union Administration,National Credit Union Administration,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-53716,National Transporatation Safety Board,National Transportation Safety Board,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-54413,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-63331,Lawrence Berkeley National Laboratory,Lawrence Berkeley National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-328102,Uganda Communications Commission,Federal Communications Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-393399,Sandia National Laboratories,Sandia National Laboratories,doe_lab,,medium,caida,2026-10-14,2026-10-14
-393704,Brookhaven National Laboratory,Brookhaven National Laboratory,doe_lab,,medium,caida,2026-10-14,2026-10-14
-396322,Peace Corps,Peace Corps,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-396972,Department of Homeland Security,Department of Homeland Security,cfo_act,,medium,caida,2026-10-14,2026-10-14
-396973,Department of Homeland Security,Department of Homeland Security,cfo_act,,medium,caida,2026-10-14,2026-10-14
-397908,Alabama Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-398192,Arkansas Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-398315,Selective Service System,Selective Service System,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-398757,Federal Trade Commission,Federal Trade Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-399583,Office of Personnel Management,Office of Personnel Management,cfo_act,,medium,caida,2026-10-14,2026-10-14
-401223,Federal Election Commission,Federal Election Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
-401606,Colorado Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-14,2026-10-14
-401953,U.S. Small Business Administration,Small Business Administration,cfo_act,,medium,caida,2026-10-14,2026-10-14
-402358,U. S. Equal Employment Opportunity Commission,Equal Employment Opportunity Commission,federal_civilian,,medium,caida,2026-10-14,2026-10-14
+16,Lawrence Berkeley National Laboratory,Lawrence Berkeley National Laboratory,doe_lab,LBNL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+23,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+24,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+39,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+41,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+43,Brookhaven National Laboratory,Brookhaven National Laboratory,doe_lab,BNL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+44,Lawrence Livermore National Laboratory,Lawrence Livermore National Laboratory,doe_lab,LLNL-1-Z-ARIN,high,caida,2026-10-13,2026-10-13
+45,Lawrence Livermore National Laboratory,Lawrence Livermore National Laboratory,doe_lab,LLNL-1-Z-ARIN,high,caida,2026-10-13,2026-10-13
+50,Oak Ridge National Laboratory,Oak Ridge National Laboratory,doe_lab,ORNL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+56,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+61,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+65,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+68,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,LANL-2-Z-ARIN,high,caida,2026-10-13,2026-10-13
+75,Argonne National Laboratory,Argonne National Laboratory,doe_lab,ANL-13-Z-ARIN,high,caida,2026-10-13,2026-10-13
+79,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,LANL-2-Z-ARIN,high,caida,2026-10-13,2026-10-13
+95,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+102,U.S. National Science Foundation,National Science Foundation,cfo_act,NSF-ARIN,high,caida,2026-10-13,2026-10-13
+107,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+115,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+118,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+121,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+123,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+124,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+126,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+129,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+132,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+133,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+135,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+136,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+138,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+140,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+146,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+147,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+149,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+150,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+155,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+164,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+165,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+169,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+170,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+175,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+198,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+216,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+218,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+220,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+221,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+222,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+228,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+240,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+241,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+244,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+246,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+255,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+270,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+273,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+291,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+292,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+293,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+295,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+296,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+297,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+298,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+300,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+301,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+303,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+306,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+307,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+308,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+309,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+310,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+311,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+312,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+313,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+314,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+315,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+316,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+317,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+318,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+319,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+320,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+321,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+322,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+323,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+324,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+325,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+326,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+327,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+328,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+329,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+330,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+331,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+332,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+333,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+334,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+335,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+336,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+337,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+338,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+339,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+340,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+341,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+342,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+343,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+344,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+345,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+346,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+347,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+348,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+349,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+350,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+351,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+352,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+353,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+354,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+355,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+356,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+357,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+358,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+359,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+360,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+361,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+362,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+363,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+364,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+365,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+366,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+367,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+368,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+369,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+370,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+371,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+372,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+374,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+377,Sandia National Laboratories,Sandia National Laboratories,doe_lab,SNL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+379,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+380,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+381,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+382,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+383,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+384,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+385,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+386,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+387,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+388,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+389,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+390,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+391,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+392,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+393,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+394,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+395,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+396,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+397,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+398,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+399,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+400,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+401,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+402,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+403,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+404,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+405,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+406,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+407,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+408,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+409,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+410,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+411,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+412,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+413,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+414,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+415,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+416,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+417,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+418,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+419,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+420,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+421,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+422,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+423,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+424,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+425,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+426,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+427,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+428,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+429,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+430,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+431,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+432,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+433,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+434,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+435,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+436,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+437,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+438,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+439,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+440,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+441,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+442,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+443,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+444,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+445,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+446,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+447,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+448,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+449,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+450,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+451,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+452,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+453,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+454,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+455,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+456,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+457,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+458,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+459,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+460,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+461,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+462,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+463,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+464,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+465,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+466,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+467,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+468,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+469,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+470,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+471,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+472,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+473,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+474,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+475,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+476,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+477,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+478,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+479,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+480,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+481,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+482,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+483,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+484,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+485,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+486,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+487,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+488,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+489,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+490,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+491,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+492,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+493,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+494,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+495,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+496,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+497,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+498,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+499,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+500,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+501,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+502,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+503,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+504,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+505,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+506,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+507,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+508,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+509,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+512,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+514,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+515,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+518,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+522,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+527,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+532,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+540,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+548,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+550,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,LANL-2-Z-ARIN,high,caida,2026-10-13,2026-10-13
+552,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+564,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+568,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+569,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+570,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+571,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+573,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+576,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+580,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+581,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+582,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+583,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+584,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+585,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+586,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+587,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+616,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+617,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+618,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+619,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+620,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+621,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+622,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+623,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+624,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+625,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+626,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+627,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+628,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+629,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+630,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+631,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+632,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+633,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+634,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+635,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+636,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+637,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+638,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+639,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+640,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+641,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+642,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+643,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+644,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+645,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+646,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+647,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+648,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+649,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+650,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+651,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+652,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+653,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+654,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+655,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+656,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+657,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+658,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+659,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+660,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+661,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+662,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+663,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+664,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+665,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+667,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+668,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+678,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+682,Oak Ridge National Laboratory,Oak Ridge National Laboratory,doe_lab,ORNL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+683,Argonne National Laboratory,Argonne National Laboratory,doe_lab,ANL-13-Z-ARIN,high,caida,2026-10-13,2026-10-13
+687,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+707,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+713,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+717,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+718,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+720,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+721,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+722,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+723,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+724,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+725,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+726,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+727,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+728,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+729,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+730,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+731,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+732,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+733,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+734,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+735,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+736,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+737,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+738,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+739,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+740,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+741,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+742,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+743,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+744,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+745,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+746,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+748,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+749,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+765,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+767,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+769,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+770,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+771,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+787,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1202,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1208,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1242,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+1245,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+1247,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1254,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1260,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+1262,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1263,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1291,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1298,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1314,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1316,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1550,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1551,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1552,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1553,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1554,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1555,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1556,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1557,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1558,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1559,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1560,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1561,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1562,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1563,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1564,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1565,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1566,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1567,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1568,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1569,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1570,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1571,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1572,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1573,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1574,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1575,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1576,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1577,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1578,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1579,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1580,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1581,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1582,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1583,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1584,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1585,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1586,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1587,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1588,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1589,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1590,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1591,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1592,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1593,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1594,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1595,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1596,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1597,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1598,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1599,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1600,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1601,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1701,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1727,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1733,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1749,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1758,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+1765,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1778,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1829,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,LANL-2-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1834,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1839,Los Alamos National Laboratory,Los Alamos National Laboratory,doe_lab,LANL-2-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1843,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1844,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1845,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1846,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1847,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+1848,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-ARIN,high,caida,2026-10-13,2026-10-13
+1904,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1908,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1910,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1911,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1912,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1913,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1914,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1915,National Science Foundation,National Science Foundation,cfo_act,NSF-15-ARIN,high,caida,2026-10-13,2026-10-13
+1918,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1925,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1959,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1971,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+1999,U.S. House of Representatives,U.S. House of Representatives,legislative,ISUHR-ARIN,high,caida,2026-10-13,2026-10-13
+2032,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2046,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2054,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2137,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2141,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2142,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+2143,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+2274,Congressional Budget Office,Congressional Budget Office,legislative,CBO-ARIN,high,caida,2026-10-13,2026-10-13
+2275,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2384,Architect of the Capitol,Architect of the Capitol,legislative,ARCHIT-Z-ARIN,high,caida,2026-10-13,2026-10-13
+2531,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2532,Library of Congress,Library of Congress,legislative,LCITS-Z-ARIN,high,caida,2026-10-13,2026-10-13
+2545,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+2550,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+2576,U. S. Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+2577,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2581,U.S. Government Accountability Office,Government Accountability Office,legislative,,medium,caida,2026-10-13,2026-10-13
+2621,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2622,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2623,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2624,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2625,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2626,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2627,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2628,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2629,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2630,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2632,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2640,Ames Laboratory,Ames National Laboratory,doe_lab,AMESLA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+2714,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-13,2026-10-13
+2741,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2742,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+2743,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+2744,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2745,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+2747,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+2748,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3113,U.S. Department of Commerce,Department of Commerce,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3114,Department of Justice,Department of Justice,cfo_act,DEPART-31-ARIN,high,caida,2026-10-13,2026-10-13
+3134,U.S. Agency for International Development,U.S. Agency for International Development,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3138,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3143,U.S. Department of Veterans Affairs,Department of Veterans Affairs,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3152,Fermi National Accelerator Laboratory (Fermilab),Fermi National Accelerator Laboratory,doe_lab,FERMIL-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3380,Princeton Plasma Physics Laboratory,Princeton Plasma Physics Laboratory,doe_lab,PPPL-ARIN,high,caida,2026-10-13,2026-10-13
+3387,U.S. Department of State,Department of State,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3395,Commonwealth Department of Human Services and Health,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3416,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3417,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3418,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3419,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3425,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3426,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3427,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3428,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3429,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3430,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3431,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3432,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3433,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3434,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3435,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3436,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3437,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3438,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3439,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3440,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3441,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3442,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3443,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3444,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3445,ESnet,Energy Sciences Network (ESnet),doe_lab,ENSN-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3466,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3467,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3468,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3469,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3470,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3471,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3472,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3473,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3474,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3495,US Senate,U.S. Senate,legislative,,medium,caida,2026-10-13,2026-10-13
+3528,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3529,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3530,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3531,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3532,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3533,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3534,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3535,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3536,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3537,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3538,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3539,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3540,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3541,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3542,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3543,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3544,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3545,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3546,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3547,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3562,Sandia National Laboratories,Sandia National Laboratories,doe_lab,SNL-3-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3664,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3665,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3666,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3667,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3671,SLAC National Accelerator Laboratory,SLAC National Accelerator Laboratory,doe_lab,THELE-44-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3696,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+3705,U.S. Government Publishing Office,Government Publishing Office,legislative,,medium,caida,2026-10-13,2026-10-13
+3760,Texas Department of Agriculture,Department of Agriculture,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3781,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3788,Texas Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+3930,Federal Energy Regulatory Commission,Federal Energy Regulatory Commission,federal_civilian,FERC-Z-ARIN,high,caida,2026-10-13,2026-10-13
+3954,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4020,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4021,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4022,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4023,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4024,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4025,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4026,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4027,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4028,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4029,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4030,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4031,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4032,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4033,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4034,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4035,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4036,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4037,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4038,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4161,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4162,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4163,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4164,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4165,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4170,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4214,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4215,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4216,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4217,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4218,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4219,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4220,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4221,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4252,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4303,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4379,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4383,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4480,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4481,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4482,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4483,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4484,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4485,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4486,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4487,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4488,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4489,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4490,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4536,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4564,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+4607,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+4909,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5011,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+5012,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+5013,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+5014,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+5021,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+5031,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5037,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5052,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5120,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5121,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5122,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5123,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5124,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5125,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5126,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5127,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5128,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5129,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5130,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5131,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5132,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5133,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5134,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5135,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5136,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5137,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5138,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5139,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5140,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5141,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5142,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5143,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5144,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5145,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5146,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5147,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5148,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5149,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5150,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5151,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5152,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5153,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5154,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5155,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5156,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5157,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5158,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5159,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5160,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5161,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5162,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5163,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5164,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5165,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5166,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5167,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5168,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5169,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5170,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5171,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5172,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5173,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5174,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5175,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5176,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5177,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5178,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5179,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5180,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5181,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5182,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5183,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5184,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5185,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5186,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5187,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5188,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5189,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5190,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5191,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5192,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5193,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5194,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5195,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5196,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5197,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5198,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5199,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5200,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5201,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5202,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5203,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5204,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5205,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5206,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5207,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5208,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5209,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5210,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5211,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5212,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5213,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5214,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5215,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5216,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5217,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5218,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5219,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5220,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5221,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5222,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5223,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5224,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5225,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5226,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5227,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5228,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5229,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5230,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5231,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5232,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5233,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5234,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5235,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5236,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5237,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5238,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5239,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5240,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5241,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5242,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5243,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5244,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5245,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5246,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5247,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5248,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5249,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5250,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5251,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5252,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5253,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5254,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5255,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5256,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5257,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5258,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5259,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5260,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5261,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5262,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5263,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5264,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5265,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5266,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5267,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5268,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5269,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5270,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5271,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5272,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5273,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5274,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5275,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5276,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5277,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5278,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5279,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5280,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5281,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5282,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5283,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5284,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5285,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5286,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5287,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5288,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5289,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5290,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5291,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5292,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5293,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5294,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5295,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5296,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5297,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5298,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5299,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5300,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5301,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5302,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5303,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5304,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5305,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5306,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5307,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5308,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5309,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5310,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5311,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5312,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5313,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5314,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5315,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5316,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5317,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5318,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5319,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5320,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5321,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5322,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5323,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5324,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5325,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5326,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5327,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5328,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5329,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5330,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5331,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5332,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5333,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5334,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5335,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5336,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5337,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5338,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5339,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5340,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5341,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5342,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5343,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5344,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5345,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5346,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5347,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5348,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5349,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5350,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5351,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5352,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5353,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5354,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5355,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5356,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5357,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5358,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5359,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5360,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5361,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5362,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5363,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5364,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5365,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5366,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5367,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5368,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5369,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5370,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5371,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5372,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5373,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5374,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5375,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5376,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5774,United States Postal Service,U.S. Postal Service,federal_civilian,USPS-3-Z-ARIN,high,caida,2026-10-13,2026-10-13
+5800,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5801,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5802,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5803,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5804,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5805,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5806,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5807,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5808,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5809,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5810,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5811,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5812,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5813,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5814,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5815,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5816,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5817,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5818,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5819,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5820,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5821,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5822,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5823,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5824,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5825,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5826,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5827,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5828,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5829,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5830,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5831,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5832,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5833,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5834,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5835,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5836,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5837,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5838,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5839,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5840,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5841,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5842,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5843,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5844,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5845,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5846,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5847,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5848,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5849,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5850,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5851,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5852,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5853,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5854,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5855,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5856,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5857,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5858,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5859,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5860,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5861,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5862,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5863,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5864,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5865,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5866,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5867,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5868,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5869,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5870,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5871,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5872,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5873,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5874,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5875,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5876,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5877,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5878,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5879,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5880,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5881,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5882,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5883,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5884,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5885,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5886,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5887,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5888,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5889,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5890,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5891,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5892,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5893,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5894,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5895,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5896,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5897,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5898,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5899,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5900,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5901,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5902,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5903,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5904,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5905,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5906,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5907,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5908,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5909,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5910,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5911,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5912,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5913,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5914,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5915,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5916,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5917,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5918,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5919,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5920,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5921,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5922,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5923,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5924,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5925,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5926,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5927,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5928,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5929,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5930,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5931,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5932,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5933,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5934,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5935,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5936,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5937,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5938,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5939,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5940,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5941,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5942,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5943,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5944,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5945,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5946,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5947,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5948,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5949,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5950,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5951,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5952,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5953,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5954,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5955,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5956,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5957,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5958,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5959,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5960,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5961,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5962,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5963,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5964,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5965,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5966,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5967,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5968,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5969,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5970,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5971,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5972,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5973,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5974,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5975,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5976,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5977,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5978,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5979,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5980,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5981,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5982,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5983,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5984,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5985,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5986,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5987,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5988,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5989,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5990,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5991,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5992,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5993,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5994,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5995,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5996,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5997,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5998,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+5999,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6000,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6001,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6002,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6003,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6004,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6005,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6006,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6007,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6008,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6009,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6010,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6011,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6012,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6013,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6014,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6015,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6016,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6017,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6018,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6019,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6020,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6021,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6022,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6023,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6024,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6025,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6026,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6027,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6028,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6029,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6030,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6031,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6032,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6033,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6034,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6035,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6036,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6037,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6038,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6039,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6040,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6041,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6042,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6043,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6044,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6045,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6046,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6047,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6048,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6049,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6050,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6051,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6052,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6053,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6054,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6055,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+6406,Thomas Jefferson National Accelerator Facility,Thomas Jefferson National Accelerator Facility,doe_lab,CEBAFS-Z-ARIN,high,caida,2026-10-13,2026-10-13
+6570,AmeriCorps,Corporation for National and Community Service,federal_civilian,CNCS-ARIN,high,caida,2026-10-13,2026-10-13
+6966,U.S. Department of State,Department of State,cfo_act,,medium,caida,2026-10-13,2026-10-13
+7847,NASA Goddard Space Flight Center,National Aeronautics and Space Administration,cfo_act,NGSFC-ARIN,high,caida,2026-10-13,2026-10-13
+8076,Department of Housing and Urban Development,Department of Housing and Urban Development,cfo_act,,medium,caida,2026-10-13,2026-10-13
+10343,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+10371,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+10384,Tennessee Valley Authority,Tennessee Valley Authority,federal_civilian,TVA-ARIN,high,caida,2026-10-13,2026-10-13
+10442,U.S. Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-13,2026-10-13
+10702,Idaho National Laboratory,Idaho National Laboratory,doe_lab,INL-12-ARIN,high,caida,2026-10-13,2026-10-13
+10888,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-Z-ARIN,high,caida,2026-10-13,2026-10-13
+11405,Environmental Protection Agency,Environmental Protection Agency,cfo_act,,medium,caida,2026-10-13,2026-10-13
+11678,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-13,2026-10-13
+11873,U.S. Agency for International Development,U.S. Agency for International Development,cfo_act,,medium,caida,2026-10-13,2026-10-13
+11974,US Department of State,Department of State,cfo_act,,medium,caida,2026-10-13,2026-10-13
+11985,Social Security Administration,Social Security Administration,cfo_act,,medium,caida,2026-10-13,2026-10-13
+12037,Federal Deposit Insurance Corporation,Federal Deposit Insurance Corporation,federal_civilian,FDIC-ARIN,high,caida,2026-10-13,2026-10-13
+13784,Air Force Systems Networking,Department of the Air Force,dod,7ESG-ARIN,high,caida,2026-10-13,2026-10-13
+14298,Environmental Protection Agency,Environmental Protection Agency,cfo_act,,medium,caida,2026-10-13,2026-10-13
+14702,Idaho National Laboratory,Idaho National Laboratory,doe_lab,INL-12-ARIN,high,caida,2026-10-13,2026-10-13
+15029,U.S. Department of Health & Human Services,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-13,2026-10-13
+15130,U. S. Department of Justice,Department of Justice,cfo_act,DEPAR-9-ARIN,high,caida,2026-10-13,2026-10-13
+15147,DEPARTMENT OF HOMELAND SECURITY,Department of Homeland Security,cfo_act,DHS-37-ARIN,high,caida,2026-10-13,2026-10-13
+15196,Maryland Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+16411,National Laboratory of the Rockies,National Renewable Energy Laboratory,doe_lab,NREL-ARIN,high,caida,2026-10-13,2026-10-13
+17107,Georgia Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+19050,U.S. Department of Health & Human Services,Department of Health and Human Services,cfo_act,,medium,caida,2026-10-13,2026-10-13
+20137,USAGM,U.S. Agency for Global Media,federal_civilian,USAGM-ARIN,high,caida,2026-10-13,2026-10-13
+20301,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-ARIN,high,caida,2026-10-13,2026-10-13
+21556,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-ARIN,high,caida,2026-10-13,2026-10-13
+21617,National Archives and Records Administration,National Archives and Records Administration,federal_civilian,NARA-ARIN,high,caida,2026-10-13,2026-10-13
+21633,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-13,2026-10-13
+22238,Defense Advanced Research Projects Agency(DARPA),Defense Advanced Research Projects Agency,dod,DARPA-2-ARIN,high,caida,2026-10-13,2026-10-13
+22284,U.S. Department of the Interior,Department of the Interior,cfo_act,,medium,caida,2026-10-13,2026-10-13
+22523,State of NM Administrative Office of the Courts,Administrative Office of the U.S. Courts,judicial,,medium,caida,2026-10-13,2026-10-13
+22767,National Aeronautics and Space Administration,National Aeronautics and Space Administration,cfo_act,NASA-ARIN,high,caida,2026-10-13,2026-10-13
+22902,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+24313,NSW Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-13,2026-10-13
+25640,Hawaii Department of Education,Department of Education,cfo_act,,medium,caida,2026-10-13,2026-10-13
+25996,FBI Criminal Justice Information Services,Department of Justice,cfo_act,FCJIS-ARIN,high,caida,2026-10-13,2026-10-13
+26229,U.S. Securities & Exchange Commission,Securities and Exchange Commission,federal_civilian,,medium,caida,2026-10-13,2026-10-13
+27032,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27033,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27034,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27035,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27036,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27037,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27038,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27039,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27040,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27041,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27042,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27043,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27044,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27045,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27046,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27047,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27048,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27049,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27050,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27051,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27052,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27053,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27054,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27055,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27056,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27057,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27058,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27059,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27060,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27061,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27062,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27063,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27064,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27065,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27066,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27067,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27068,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27069,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27070,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27071,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27072,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27073,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27074,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27075,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27076,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27077,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27078,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27079,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27080,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27081,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27082,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27083,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27084,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27085,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27086,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27087,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27088,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27089,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27090,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27091,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27092,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27093,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27094,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27095,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27096,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27097,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27098,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27099,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27100,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27101,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27102,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27103,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27104,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27105,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27106,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27107,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27108,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27109,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27110,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27111,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27112,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27113,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27114,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27115,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27116,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27117,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27118,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27119,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27120,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27121,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27122,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27123,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27124,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27125,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27126,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27127,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27128,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27129,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27130,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27131,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27132,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27133,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27134,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27135,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27136,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27137,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27138,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27139,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27140,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27141,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27142,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27143,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27144,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27145,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27146,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27147,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27148,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27149,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27150,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27151,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27152,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27153,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27154,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27155,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27156,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27157,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27158,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27159,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+27331,DEPARTMENT OF HOMELAND SECURITY,Department of Homeland Security,cfo_act,DHS-37-ARIN,high,caida,2026-10-13,2026-10-13
+29992,U.S. Department of Veterans Affairs,Department of Veterans Affairs,cfo_act,,medium,caida,2026-10-13,2026-10-13
+31951,NASA Deep Space Network (DSN),National Aeronautics and Space Administration,cfo_act,NDSND-ARIN,high,caida,2026-10-13,2026-10-13
+32513,BATTELLE MEMORIAL INSTITUTE,Pacific Northwest National Laboratory,doe_lab,BMI-1-ARIN,high,caida,2026-10-13,2026-10-13
+32982,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-13,2026-10-13
+39983,Pension Benefit Guaranty Corp.,Pension Benefit Guaranty Corporation,federal_civilian,PBGC-ARIN,high,caida,2026-10-13,2026-10-13
+40158,Department of Homeland Security,Department of Homeland Security,cfo_act,DHS-39-ARIN,high,caida,2026-10-13,2026-10-13
+46846,U.S. Department of Energy,Department of Energy,cfo_act,,medium,caida,2026-10-13,2026-10-13
+53545,Administrative Office of the Courts,Administrative Office of the U.S. Courts,judicial,,medium,caida,2026-10-13,2026-10-13
+53554,National Credit Union Administration,National Credit Union Administration,federal_civilian,NCUA-ARIN,high,caida,2026-10-13,2026-10-13
+53716,National Transporatation Safety Board,National Transportation Safety Board,federal_civilian,,medium,caida,2026-10-13,2026-10-13
+54297,Savannah River Site,Savannah River National Laboratory,doe_lab,SRP-1-ARIN,high,caida,2026-10-13,2026-10-13
+54413,General Services Administration,General Services Administration,cfo_act,,medium,caida,2026-10-13,2026-10-13
+63147,United States Capitol Police,U.S. Capitol Police,legislative,USCP-15-ARIN,high,caida,2026-10-13,2026-10-13
+63331,Lawrence Berkeley National Laboratory,Lawrence Berkeley National Laboratory,doe_lab,LBNL-ARIN,high,caida,2026-10-13,2026-10-13
+328102,Uganda Communications Commission,Federal Communications Commission,federal_civilian,,medium,caida,2026-10-13,2026-10-13
+393399,Sandia National Laboratories,Sandia National Laboratories,doe_lab,SNL-ARIN,high,caida,2026-10-13,2026-10-13
+393704,Brookhaven National Laboratory,Brookhaven National Laboratory,doe_lab,BNL-ARIN,high,caida,2026-10-13,2026-10-13
+396322,Peace Corps,Peace Corps,federal_civilian,PC-1234-ARIN,high,caida,2026-10-13,2026-10-13
+396972,Department of Homeland Security,Department of Homeland Security,cfo_act,DHS-39-ARIN,high,caida,2026-10-13,2026-10-13
+396973,Department of Homeland Security,Department of Homeland Security,cfo_act,DHS-39-ARIN,high,caida,2026-10-13,2026-10-13
+397714,Naval Information Warfare Center Atlantic,Department of the Navy,dod,NIWCA-ARIN,high,caida,2026-10-13,2026-10-13
+397908,Alabama Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+398192,Arkansas Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+398315,Selective Service System,Selective Service System,federal_civilian,SSS-15-ARIN,high,caida,2026-10-13,2026-10-13
+398500,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398501,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398502,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398503,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398504,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398505,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398506,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398507,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398508,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398509,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398510,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398511,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398512,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398513,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398514,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398515,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398516,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398517,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398518,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398519,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398520,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398521,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398522,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398523,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398524,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398525,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398526,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398527,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398528,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398529,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398530,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398531,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398532,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398533,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398534,United States Department of Defense (DoD),Department of Defense,dod,USDDD-ARIN,high,caida,2026-10-13,2026-10-13
+398757,Federal Trade Commission,Federal Trade Commission,federal_civilian,FTC-ARIN,high,caida,2026-10-13,2026-10-13
+399583,Office of Personnel Management,Office of Personnel Management,cfo_act,,medium,caida,2026-10-13,2026-10-13
+401223,Federal Election Commission,Federal Election Commission,federal_civilian,FEC-105-ARIN,high,caida,2026-10-13,2026-10-13
+401606,Colorado Department of Transportation,Department of Transportation,cfo_act,,medium,caida,2026-10-13,2026-10-13
+401953,U.S. Small Business Administration,Small Business Administration,cfo_act,,medium,caida,2026-10-13,2026-10-13
+402358,U. S. Equal Employment Opportunity Commission,Equal Employment Opportunity Commission,federal_civilian,,medium,caida,2026-10-13,2026-10-13
