@@ -103,6 +103,24 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         if row:
             totals[af] = row
 
+    # Routing-active: corpus ASNs visible in either the latest IPv4 or IPv6 snapshot.
+    # Used as the adoption denominator — matches APNIC/NIST methodology and excludes
+    # registered-but-inactive ASNs (e.g. DoD DISN-internal networks).
+    if latest_ts_by_af:
+        af_union = " UNION ALL ".join(
+            f"SELECT DISTINCT origin_asn FROM prefix_records "
+            f"WHERE af = {af} AND snapshot_ts = '{ts}'"
+            for af, ts in latest_ts_by_af.items()
+        )
+        row = conn.execute(f"""
+            SELECT COUNT(DISTINCT origin_asn)
+            FROM ({af_union}) active
+            WHERE origin_asn IN (SELECT asn FROM asn_corpus)
+        """).fetchone()
+        routing_active_count = row[0] if row else 0
+    else:
+        routing_active_count = 0
+
     # ── By-tier ──────────────────────────────────────────────────────────────
     # Union the latest snapshot for each af so both families are represented.
     if latest_ts_by_af:
@@ -309,6 +327,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         generated_at=generated_at,
         latest_ts=latest_ts,
         corpus_count=corpus_count,
+        routing_active_count=routing_active_count,
         corpus_rows=corpus_rows,
         snap_rows=snap_rows,
         totals=totals,
@@ -346,7 +365,7 @@ def _page_no_data(generated_at: str) -> str:
 
 
 def _page(
-    generated_at, latest_ts, corpus_count, corpus_rows,
+    generated_at, latest_ts, corpus_count, routing_active_count, corpus_rows,
     snap_rows, totals, by_tier, ark_data, hitlist_data, js_data,
 ) -> str:
     snap_label = f"Latest snapshot: {latest_ts}" if latest_ts else "No routing data yet"
@@ -354,9 +373,12 @@ def _page(
     ipv6 = totals.get(6)
     ipv4 = totals.get(4)
 
-    # Adoption % = corpus ASNs with any IPv6 / total corpus ASNs
+    # Adoption % = IPv6-announcing ASNs / routing-active ASNs (IPv4 or IPv6 in latest snapshot).
+    # Registered-but-inactive ASNs (e.g. DoD DISN-internal networks not visible in public BGP)
+    # are excluded from the denominator, matching APNIC/NIST/Google methodology.
     ipv6_asn_count = ipv6[2] if ipv6 else 0
-    adoption_pct = f"{100 * ipv6_asn_count / corpus_count:.1f}%" if corpus_count else "—"
+    adoption_pct = (f"{100 * ipv6_asn_count / routing_active_count:.1f}%"
+                    if routing_active_count else "—")
 
     def _card(cls, label, value, sub=""):
         return (f'<div class="stat-card {cls}">'
@@ -366,8 +388,9 @@ def _page(
 
     cards = "".join([
         _card("ipv6", "IPv6 Adoption",
-              adoption_pct if corpus_count else "—",
-              f"{ipv6_asn_count} of {corpus_count} corpus ASNs" if corpus_count else "no data"),
+              adoption_pct if routing_active_count else "—",
+              f"{ipv6_asn_count} of {routing_active_count} routing-active ASNs"
+              if routing_active_count else "no data"),
         _card("ipv6b", "IPv6 Prefixes",
               f"{ipv6[1]:,}" if ipv6 else "—",
               "visible in BGP table" if ipv6 else "run RouteViews ingest"),
@@ -376,7 +399,7 @@ def _page(
               f"from {ipv4[2]:,} ASNs" if ipv4 else "no data"),
         _card("corpus", "Corpus ASNs",
               f"{corpus_count:,}",
-              "tracked USG organizations"),
+              f"{routing_active_count:,} routing-active in BGP"),
     ])
 
     # ── By-tier table ─────────────────────────────────────────────────────────
@@ -475,6 +498,14 @@ def _page(
     <a href="http://www.routeviews.org/">RouteViews</a> collectors. Prefix counts
     reflect distinct network blocks visible at the time of the snapshot.
     An ASN is counted as "IPv6 active" when it originates at least one IPv6 prefix.
+    The IPv6 adoption percentage is measured against <em>routing-active</em> ASNs —
+    those originating at least one prefix (IPv4 or IPv6) in the most recent snapshot —
+    matching the methodology used by
+    <a href="https://stats.labs.apnic.net/ipv6/">APNIC</a> and
+    <a href="https://www.nist.gov/publications/measuring-ipv6-adoption">NIST</a>.
+    ASNs registered in ARIN but not visible in the public BGP table
+    (for example, DoD networks operating on the classified DISN) remain in the
+    corpus for completeness but are excluded from the adoption denominator.
   </p>
   <div class="stat-grid">{cards}</div>
 </section>
@@ -510,9 +541,12 @@ def _page(
 <section id="asn-explorer">
   <h2>ASN Explorer</h2>
   <p class="section-blurb">
-    Browse all {corpus_count:,} ASNs in the tracking corpus.
+    Browse all {corpus_count:,} ASNs in the tracking corpus
+    ({routing_active_count:,} currently routing-active in the BGP table).
     Search by agency name or ASN number, then click any row to see
     that ASN's current prefix announcements and historical trend.
+    ASNs with no prefix history are registered in ARIN but not visible
+    in public RouteViews data.
   </p>
   <div class="search-bar">
     <input type="search" id="asn-search" placeholder="Search agency or ASN…"
