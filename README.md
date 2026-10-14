@@ -15,6 +15,7 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Make targets](#make-targets)
 - [GitHub Actions](#github-actions)
 - [Corpus build](#corpus-build)
+- [Corpus: source matching methodology and known limitations](#corpus-source-matching-methodology-and-known-limitations)
 - [Pipeline: incremental run](#pipeline-incremental-run)
 - [Pipeline: backfill](#pipeline-backfill)
 - [Ark reachability](#ark-reachability)
@@ -385,26 +386,31 @@ make corpus
 
 **What it does:**
 
-1. Queries ARIN WHOIS REST API for ASNs registered to each of the 24 CFO Act agencies. If ARIN is unreachable (e.g. from GitHub Actions IP ranges), this step is skipped and only CAIDA data is used.
-2. Downloads the most recent CAIDA AS2Org file (published on the 1st of each month). Walks back up to 6 months to find the latest available file.
-3. Fuzzy-matches CAIDA organization names against the agency list (threshold: 85/100) to catch ASNs that ARIN registration alone would miss.
-4. Deduplicates by ASN, keeping the most-specific tier when an ASN appears in multiple sources.
-5. Writes `data/usg_asn_corpus.csv` and loads the `asn_corpus` table in the DuckDB file.
+1. Pre-flight check: attempts to reach ARIN WHOIS (`whois.arin.net`). GitHub Actions IP ranges (Azure) are blocked by ARIN, so this check always fails in CI and ARIN queries are skipped entirely.
+2. If ARIN is reachable (local run only): queries the ARIN WHOIS REST API `/org/{handle}/asns.json` for each seed handle. **This returns very few results in practice** — see [Corpus: source matching methodology and known limitations](#corpus-source-matching-methodology-and-known-limitations).
+3. Downloads the most recent CAIDA AS2Org file (published on the 1st of each month; walks back up to 6 months to find the latest available).
+4. **Primary match — exact ARIN handle:** For each ASN in the AS2Org file, checks whether its `org_id` matches a seed handle. CAIDA formats `org_id` as `{ARIN-HANDLE}-ARIN` or `{ARIN-HANDLE}-Z-ARIN` (e.g., our handle `ORNL` → CAIDA `org_id` `ORNL-Z-ARIN`). Matches produce `confidence: high` records with `arin_org_handle` populated.
+5. **Fallback — fuzzy name match:** For ASNs that did not match by handle, fuzzy-matches the CAIDA org name string against the agency seed list (threshold: 85/100 token-sort ratio). Matches produce `confidence: medium` records.
+6. Deduplicates by ASN, keeping the highest-priority tier when an ASN appears under multiple agencies (see tier table below).
+7. Writes `data/usg_asn_corpus.csv` and loads the `asn_corpus` table in the DuckDB file.
 
-**Tier hierarchy (most to least specific):**
+**Tier hierarchy (higher rows take precedence on conflict):**
 
-| Tier | Agencies |
-| ------ | ---------- |
-| `cfo_act` | 24 CFO Act civilian agencies |
-| `dod` | Department of Defense |
-| `federal_civilian` | Other federal entities (CAIDA-discovered only) |
+| Tier | Description |
+| ------ | ----------- |
+| `cfo_act` | 24 CFO Act civilian cabinet agencies |
+| `dod` | Department of Defense and components (DARPA, DISA, service branches, NGA, SOCOM) |
+| `doe_lab` | DOE national laboratory complex and ESnet |
+| `federal_civilian` | Independent federal agencies and commissions |
+| `legislative` | Legislative branch entities |
+| `judicial` | Judicial branch entities |
 
 **Confidence levels:**
 
 | Level | Source |
 | ------- | -------- |
-| `high` | ARIN WHOIS (authoritative registration) |
-| `medium` | CAIDA AS2Org fuzzy match |
+| `high` | CAIDA AS2Org with exact ARIN org handle match, or direct ARIN WHOIS query (local runs only) |
+| `medium` | CAIDA AS2Org fuzzy org-name match (threshold 85/100) |
 
 **To supply a local AS2Org file instead of downloading:**
 
@@ -419,6 +425,123 @@ from usg_ipv6.corpus.caida import download_as2org
 path = download_as2org("data/raw")   # probes the last 6 months, takes the most recent
 print(path)
 ```
+
+---
+
+## Corpus: source matching methodology and known limitations
+
+This section describes why ASN discovery is harder than it looks and documents known issues that affect corpus completeness and accuracy. Researchers building on this dataset should read it.
+
+### Why ARIN's `/asns` endpoint is insufficient
+
+The ARIN WHOIS REST API provides `/org/{handle}/asns.json`, which returns ASNs *directly registered to that org handle*. In practice, this endpoint returns almost nothing for US government agencies:
+
+- **Agencies register address space, not ASN numbers, under their primary org handle.** ORNL, Fermilab, LBNL, and most other labs register IPv4/IPv6 address blocks (nets) under their handle, but their AS numbers are registered under separate, often obscure child or customer handles, or under the network operator (ESnet, Internet2, DISA) rather than the lab itself.
+- **ARIN blocks GitHub Actions IP ranges.** Azure IP space (used by GitHub Actions) is blocked by ARIN. The `arin_reachable()` pre-flight check detects this and short-circuits all ARIN queries immediately rather than burning through retry backoff for every seed handle. All CI runs are therefore CAIDA-only.
+- **Even running locally, `/asns` returns empty.** Testing locally against representative handles: `ORNL` → 404 (no ASNs), `FERMIL` → 404, but both return 200 on `/nets` (they have registered address space). The ASNs that originate their prefixes are registered elsewhere. The ARIN WHOIS REST `/asns` path is structurally the wrong query for how DoD and DOE networks are organized.
+
+### How CAIDA AS2Org matching works
+
+The CAIDA AS2Org file (published monthly) maps each ASN to an organization. It has two record types:
+
+- **AUT lines** (6 fields): `asn | changed | aut_name | org_id | opaque_id | source`
+- **ORG lines** (5 or 6 fields): `org_id | changed | org_name | country | source`
+
+The `org_id` in AUT lines is a key into the ORG table. Crucially, **CAIDA's `org_id` is the ARIN org handle with a suffix appended**: either `-ARIN` or `-Z-ARIN`. For example:
+
+| ARIN handle | CAIDA org_id |
+| ----------- | ------------ |
+| `ORNL` | `ORNL-Z-ARIN` |
+| `BNL` | `BNL-ARIN` *and* `BNL-Z-ARIN` (two separate entries) |
+| `FERMIL` | `FERMIL-Z-ARIN` |
+| `DARPA-2` | `DARPA-2-ARIN` |
+| `SNL-3` | `SNL-3-Z-ARIN` |
+| `THELE-44` (SLAC) | `THELE-44-Z-ARIN` |
+| `NASA` | `NASA-ARIN` *and* `NASA-Z-ARIN` |
+
+The corpus builder constructs lookup keys for both suffix forms and checks each CAIDA ASN's `org_id` against them. Matches are treated as `confidence: high` because they are exact handle matches rather than approximate name matches.
+
+The `-Z-` form appears to denote customer allocations or sub-registrations in ARIN's internal data model; the practical effect is that an org may appear under both the plain `-ARIN` and `-Z-ARIN` forms, and the corpus correctly collects ASNs from both.
+
+### Fuzzy name matching: fallback and known mismatches
+
+For ASNs whose CAIDA `org_id` does not match any seed handle, the builder falls back to fuzzy string matching: each CAIDA `org_name` string is compared to the seed agency names using `rapidfuzz.fuzz.token_sort_ratio` with a threshold of 85/100. This catches agencies whose ASNs are registered under different org handles but where the org name is recognizable.
+
+Known cases where the CAIDA-registered name differs substantially from the canonical agency name:
+
+| Agency | Seed name | CAIDA org_name | Match path |
+| ------- | --------- | -------------- | ---------- |
+| National Renewable Energy Laboratory | `National Renewable Energy Laboratory` | `National Laboratory of the Rockies` | Handle match (`NREL-ARIN`) |
+| Pacific Northwest National Laboratory | `Pacific Northwest National Laboratory` | `BATTELLE MEMORIAL INSTITUTE` | Handle match (`BMI-1-ARIN`) |
+| Corporation for National and Community Service | `Corporation for National and Community Service` | `AmeriCorps` | Handle match (`CNCS-ARIN`) |
+| Energy Sciences Network | `Energy Sciences Network (ESnet)` | `ESnet` | Handle match (`ENSN-Z-ARIN`) |
+
+For PNNL and NREL, fuzzy name matching would fail entirely — the CAIDA-registered names share almost no tokens with the official agency names. These are only found because the ARIN handle is in the seed list and CAIDA's `org_id` encodes it.
+
+The fuzzy fallback captures agencies like USAF components, Army installations, and Navy activities where the CAIDA org name is a recognizable variant (e.g., "Air Force Systems Networking" for `7ESG-ARIN`, which matches the "Department of the Air Force" seed via handle).
+
+### NOC handles vs. primary org handles
+
+Several seed handles were originally chosen as NOC or ISP-facing handles (e.g., `NASA-ARC-NOC`, `NSF-NOC`, `DHS-CIO`) rather than the organization's primary ARIN registration. These NOC handles do not appear in CAIDA's AS2Org at all — CAIDA uses the organization-level handle, not sub-handles for specific network operations centers. The seed list includes supplemental handles that do match CAIDA:
+
+| Agency | Primary seed handle | CAIDA-matched handle(s) |
+| ------- | ------------------- | ----------------------- |
+| NASA | `NASA-ARC-NOC` | `NASA`, `NDSND` (Deep Space Network), `NGSFC` (Goddard) |
+| NSF | `NSF-NOC` | `NSF`, `NSF-15` |
+| DHS | `DHS-CIO` | `DHS-37`, `DHS-39` |
+| DOJ | `USDOJ` | `DEPAR-9`, `DEPART-31`, `FCJIS` (FBI CJIS) |
+| DoD (main) | `USDDD`, `DNIC` | `USDDD-ARIN` (1,000+ ASNs in the DoD block pool) |
+
+The original NOC handles are kept in the seed list as documentation of the ARIN registration structure and to benefit from any ARIN-direct query that succeeds locally. Only the supplemental handles produce CAIDA matches.
+
+### Known handle collisions
+
+Some bare handle strings are registered to unrelated organizations in ARIN. These were avoided or corrected during seed list construction:
+
+| Handle | Registered to (in ARIN) | Intended agency | Resolution |
+| ------- | ----------------------- | --------------- | ---------- |
+| `ESNET` | Commercial ISP (ESnet, Inc.) | DOE Energy Sciences Network | Use `ENSN` instead |
+| `ANL` | Different organization | Argonne National Laboratory | Use `ANLB` and `ANL-13` |
+| `DOE` | Delaware Office Equipment | Department of Energy | Use `DOE-ISC` |
+| `NGA` | National Gallery of Art | National Geospatial-Intelligence Agency | Use `NGA-30`, `NGA-24` |
+| `FEC` | FedEx Corporation | Federal Election Commission | Use `FEC-105` |
+| `NLRB` | NYS Law Reporting Bureau | National Labor Relations Board | Use `NLRB-4` |
+
+Researchers extending the seed list should verify every new handle against the ARIN RDAP endpoint (`https://rdap.arin.net/registry/entity/{HANDLE}`) before assuming it belongs to the intended agency. Short handles (3–4 characters) have a high collision rate.
+
+### Non-obvious handle-to-agency mappings
+
+Several DOE lab handles are opaque and were confirmed via ARIN RDAP:
+
+| Handle | Registered org name | Lab |
+| ------- | ------------------- | --- |
+| `THELE-44` | SLAC National Accelerator Laboratory | SLAC |
+| `CEBAFS` | Thomas Jefferson National Accelerator Facility | Jefferson Lab |
+| `IRDSD-1` | DOE Office of Fossil Energy (NETL) | National Energy Technology Lab |
+| `SRP-1` | Savannah River Site | Savannah River National Lab |
+| `BMI-1` | BATTELLE MEMORIAL INSTITUTE | Pacific Northwest National Lab (operated by Battelle) |
+| `ENSN` | ESnet | Energy Sciences Network (DOE ESnet) |
+| `ANL-13` | Argonne National Laboratory | Argonne (supplemental to `ANLB`) |
+
+`BMI-1` (Battelle) warrants a note: Battelle Memorial Institute is the management and operations contractor for PNNL and historically for other labs. The ARIN registration is under Battelle's corporate name, not the lab. AS32513, the only ASN under `BMI-1-ARIN` in CAIDA, is confirmed as PNNL's AS.
+
+### Deprecated handles
+
+Two handles previously in the seed list were removed after ARIN RDAP returned 404:
+
+| Handle | Replacement |
+| ------- | ----------- |
+| `DOD-NIC` | `DNIC` |
+| `DISA-HOSTMAST` | `DISA-24` |
+
+### Corpus completeness caveats
+
+The corpus is a best-effort enumeration, not an authoritative registry. Known gaps:
+
+- **DoD sub-commands and tactical networks:** DISA, Army, Navy, Air Force, and Marine Corps each have routing infrastructure spread across dozens of registered handles not in the seed list. The DoD block pool (`USDDD-ARIN`) captures the bulk (1,000+ ASNs), but tactical and joint-command ASNs may be missing.
+- **Contractor-operated networks:** Some federal IT is operated by contractors under the contractor's ASN. Those ASNs appear in BGP tables under the contractor org, not the agency.
+- **Classified or non-public registrations:** Some USG infrastructure intentionally obscures ownership. These are invisible to ARIN WHOIS and CAIDA alike.
+- **Intelligence community:** CIA, NSA, DIA, and similar agencies are not in the seed list. Their publicly routed ASNs (if any) are not tracked.
 
 ---
 
@@ -544,9 +667,9 @@ The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tabl
 | `asn` | BIGINT PK | Autonomous System Number |
 | `org_name` | VARCHAR | Organization name from ARIN or CAIDA |
 | `agency` | VARCHAR | Matched CFO Act agency name |
-| `tier` | VARCHAR | `cfo_act`, `dod`, or `federal_civilian` |
-| `arin_org_handle` | VARCHAR | ARIN organization handle (empty for CAIDA-only entries) |
-| `confidence` | VARCHAR | `high` (ARIN) or `medium` (CAIDA fuzzy match) |
+| `tier` | VARCHAR | `cfo_act`, `dod`, `doe_lab`, `federal_civilian`, `legislative`, or `judicial` |
+| `arin_org_handle` | VARCHAR | ARIN org handle as stored in CAIDA (e.g. `ORNL-Z-ARIN`); empty for fuzzy-name-matched entries |
+| `confidence` | VARCHAR | `high` (exact CAIDA org_id handle match, or direct ARIN WHOIS query) or `medium` (CAIDA fuzzy name match) |
 | `sources` | VARCHAR | Comma-separated: `arin`, `caida`, or both |
 | `last_verified` | DATE | Date the record was last checked |
 | `corpus_version` | VARCHAR | Corpus build date (YYYY-MM-DD) |
@@ -898,7 +1021,7 @@ usg_ipv6/
   cli.py                 # usg CLI (typer): stats, corpus, prefixes, snapshots, run, ark, hitlist
   report_html.py         # Static HTML report generator for GitHub Pages
   corpus/
-    federal_agencies.py  # Seed list: 24 CFO Act agencies and ARIN handles
+    federal_agencies.py  # Seed list: 90+ agencies across 6 tiers with verified ARIN handles
     arin.py              # ARIN WHOIS REST client + arin_reachable() pre-flight
     caida.py             # CAIDA AS2Org downloader and parser (monthly cadence)
     schema.py            # AsnRecord dataclass, tier priority constants
