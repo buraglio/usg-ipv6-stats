@@ -36,6 +36,29 @@ AGENCY_SEEDS = [
     {"name": "US Marine Corps",                                "handles": ["UNOC"],                     "tier": "dod"},
     {"name": "US Special Operations Command",                  "handles": ["SOC-22"],                   "tier": "dod"},
 
+    # ── DOE national laboratories and ESnet ───────────────────────────────
+    # Handles confirmed via ARIN RDAP. Several are non-obvious (THELE-44=SLAC,
+    # CEBAFS=JLab, IRDSD-1=NETL, SRP-1=Savannah River Site). ESNET collides
+    # with a commercial ISP — the correct DOE ESnet handle is ENSN.
+    {"name": "Ames National Laboratory",                       "handles": ["AMESLA"],                   "tier": "doe_lab"},
+    {"name": "Argonne National Laboratory",                    "handles": ["ANLB", "ANL-13"],           "tier": "doe_lab"},
+    {"name": "Brookhaven National Laboratory",                 "handles": ["BNL"],                      "tier": "doe_lab"},
+    {"name": "Fermi National Accelerator Laboratory",          "handles": ["FERMIL"],                   "tier": "doe_lab"},
+    {"name": "Idaho National Laboratory",                      "handles": ["INL-12"],                   "tier": "doe_lab"},
+    {"name": "Lawrence Berkeley National Laboratory",          "handles": ["LBNL"],                     "tier": "doe_lab"},
+    {"name": "Lawrence Livermore National Laboratory",         "handles": ["LLNL-1"],                   "tier": "doe_lab"},
+    {"name": "Los Alamos National Laboratory",                 "handles": ["LANL-2"],                   "tier": "doe_lab"},
+    {"name": "National Energy Technology Laboratory",          "handles": ["IRDSD-1"],                  "tier": "doe_lab"},
+    {"name": "National Renewable Energy Laboratory",           "handles": ["NREL"],                     "tier": "doe_lab"},
+    {"name": "Oak Ridge National Laboratory",                  "handles": ["ORNL"],                     "tier": "doe_lab"},
+    {"name": "Pacific Northwest National Laboratory",          "handles": ["PNNL"],                     "tier": "doe_lab"},
+    {"name": "Princeton Plasma Physics Laboratory",            "handles": ["PPPL"],                     "tier": "doe_lab"},
+    {"name": "Sandia National Laboratories",                   "handles": ["SNL", "SNL-3"],             "tier": "doe_lab"},
+    {"name": "Savannah River National Laboratory",             "handles": ["SRP-1"],                    "tier": "doe_lab"},
+    {"name": "SLAC National Accelerator Laboratory",           "handles": ["THELE-44"],                 "tier": "doe_lab"},
+    {"name": "Thomas Jefferson National Accelerator Facility", "handles": ["CEBAFS"],                   "tier": "doe_lab"},
+    {"name": "Energy Sciences Network (ESnet)",                "handles": ["ENSN"],                     "tier": "doe_lab"},
+
     # ── Independent / federal civilian agencies ────────────────────────────
     {"name": "Board of Governors of the Federal Reserve",      "handles": ["FEDER-67"],                 "tier": "federal_civilian"},
     {"name": "Commodity Futures Trading Commission",           "handles": ["CFTC-1"],                   "tier": "federal_civilian"},

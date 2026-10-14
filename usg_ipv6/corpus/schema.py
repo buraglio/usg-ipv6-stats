@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-TIER_PRIORITY = {"cfo_act": 0, "dod": 1, "federal_civilian": 2, "legislative": 3, "judicial": 4}
+TIER_PRIORITY = {"cfo_act": 0, "dod": 1, "doe_lab": 2, "federal_civilian": 3, "legislative": 4, "judicial": 5}
 
 
 @dataclass

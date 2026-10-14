@@ -12,6 +12,7 @@ DEFAULT_OUT = "web/index.html"
 _TIER_LABELS = {
     "cfo_act": "CFO Act",
     "dod": "DoD",
+    "doe_lab": "DOE Lab",
     "federal_civilian": "Federal",
     "ic": "Intel Community",
     "independent": "Independent",
@@ -22,6 +23,7 @@ _TIER_LABELS = {
 _TIER_DESCRIPTIONS = {
     "cfo_act": "The 24 cabinet-level and largest executive branch agencies named in the Chief Financial Officers Act of 1990.",
     "dod": "Department of Defense components and commands.",
+    "doe_lab": "Department of Energy national laboratories and ESnet (the DOE science network backbone).",
     "federal_civilian": "Independent federal agencies, commissions, and government corporations.",
     "ic": "Intelligence Community elements.",
     "independent": "Independent federal agencies and commissions.",
@@ -1128,6 +1130,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .tier-tag.tier-cfo_act         { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
 .tier-tag.tier-dod             { background: #ffd8b2; color: #953800; border-color: #ffc680; }
+.tier-tag.tier-doe_lab         { background: #e6f0ff; color: #1a5276; border-color: #aac8f0; }
 .tier-tag.tier-federal_civilian{ background: #d2f9d2; color: #116329; border-color: #a8f0a8; }
 .tier-tag.tier-ic              { background: #f3d2ff; color: #6639ba; border-color: #e2b8ff; }
 .tier-tag.tier-judicial        { background: #fff3cd; color: #7d4e00; border-color: #ffd966; }
