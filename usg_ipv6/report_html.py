@@ -122,19 +122,33 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         routing_active_count = 0
 
     # ── By-tier ──────────────────────────────────────────────────────────────
-    # Union the latest snapshot for each af so both families are represented.
+    # LEFT JOIN from corpus so every tier appears, even those with no current
+    # routing data (e.g. DoD DISN-internal ASNs with 0 public BGP presence).
     if latest_ts_by_af:
         af_clauses = " UNION ALL ".join(
             f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
             for af, ts in latest_ts_by_af.items()
         )
         by_tier = conn.execute(f"""
-            SELECT c.tier, pr.af,
-                   COUNT(DISTINCT pr.prefix)     AS prefixes,
-                   COUNT(DISTINCT pr.origin_asn) AS asns
-            FROM ({af_clauses}) pr
-            JOIN asn_corpus c ON pr.origin_asn = c.asn
-            GROUP BY c.tier, pr.af ORDER BY c.tier, pr.af
+            WITH latest AS ({af_clauses})
+            SELECT c.tier,
+                   pr.af,
+                   COALESCE(COUNT(DISTINCT pr.prefix), 0)     AS prefixes,
+                   COALESCE(COUNT(DISTINCT pr.origin_asn), 0) AS asns,
+                   COUNT(DISTINCT c.asn) AS corpus_asns
+            FROM asn_corpus c
+            LEFT JOIN latest pr ON pr.origin_asn = c.asn
+            GROUP BY c.tier, pr.af
+            ORDER BY MIN(
+                CASE c.tier
+                  WHEN 'cfo_act'          THEN 0
+                  WHEN 'dod'              THEN 1
+                  WHEN 'doe_lab'          THEN 2
+                  WHEN 'federal_civilian' THEN 3
+                  WHEN 'legislative'      THEN 4
+                  WHEN 'judicial'         THEN 5
+                  ELSE 9 END
+            ), pr.af NULLS LAST
         """).fetchall()
     else:
         by_tier = []
@@ -404,14 +418,26 @@ def _page(
 
     # ── By-tier table ─────────────────────────────────────────────────────────
     if by_tier:
-        tier_body = "".join(
-            f"<tr><td>{_esc(_tier_label(r[0]))}</td>"
-            f"<td>{_af_tag(r[1])}</td>"
-            f"<td class='num'>{r[2]:,}</td>"
-            f"<td class='num'>{r[3]:,}</td></tr>"
-            for r in by_tier
-        )
-        tier_tbl = _table(["Tier", "AF", "Prefixes", "ASNs"], tier_body)
+        tier_body_parts = []
+        for r in by_tier:
+            tier, af, prefixes, asns, corpus_asns = r
+            if af is None:
+                # Tier exists in corpus but has no routing data in latest snapshot
+                tier_body_parts.append(
+                    f"<tr class='tier-inactive'>"
+                    f"<td>{_esc(_tier_label(tier))}</td>"
+                    f"<td><span class='tag inact'>not routing</span></td>"
+                    f"<td class='num muted'>0</td>"
+                    f"<td class='num muted'>0 / {corpus_asns:,}</td></tr>"
+                )
+            else:
+                tier_body_parts.append(
+                    f"<tr><td>{_esc(_tier_label(tier))}</td>"
+                    f"<td>{_af_tag(af)}</td>"
+                    f"<td class='num'>{prefixes:,}</td>"
+                    f"<td class='num'>{asns:,}</td></tr>"
+                )
+        tier_tbl = _table(["Tier", "AF", "Prefixes", "ASNs (routing / corpus)"], "".join(tier_body_parts))
     else:
         tier_tbl = "<p class='empty'>No routing data yet — run the RouteViews MRT Ingest workflow.</p>"
 
@@ -1154,8 +1180,11 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   display: inline-block; border-radius: 3px;
   padding: 0.1rem 0.45rem; font-size: 0.78rem; font-weight: 500;
 }
-.tag.v6 { background: #ddf4ff; color: #0550ae; }
-.tag.v4 { background: #dafbe1; color: #116329; }
+.tag.v6   { background: #ddf4ff; color: #0550ae; }
+.tag.v4   { background: #dafbe1; color: #116329; }
+.tag.inact{ background: #f0f2f5; color: #8b949e; border: 1px solid #d0d7de; }
+.muted    { color: var(--muted); }
+tr.tier-inactive td { color: var(--muted); }
 
 .tier-tag {
   display: inline-block; border-radius: 12px;
