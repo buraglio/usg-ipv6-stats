@@ -78,6 +78,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/usg_asn_corpus.csv
           git commit -m "chore: update USG ASN corpus ${DATE} (manual refresh)"
+          git pull --rebase origin main
           git push origin main
           echo "Corpus committed to main. The Publish workflow will create a versioned release."
 
