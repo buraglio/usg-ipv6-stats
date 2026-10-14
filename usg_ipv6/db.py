@@ -18,7 +18,23 @@ def _migrate_ark_reachability(conn: duckdb.DuckDBPyConnection) -> None:
         pass  # table doesn't exist yet — init_schema will create it
 
 
+def _migrate_snapshots(conn: duckdb.DuckDBPyConnection) -> None:
+    """Add source_url and byte_count columns if missing from old schema."""
+    try:
+        cols = {
+            row[0]
+            for row in conn.execute("DESCRIBE snapshots").fetchall()
+        }
+        if "source_url" not in cols:
+            conn.execute("ALTER TABLE snapshots ADD COLUMN source_url VARCHAR NOT NULL DEFAULT ''")
+        if "byte_count" not in cols:
+            conn.execute("ALTER TABLE snapshots ADD COLUMN byte_count BIGINT NOT NULL DEFAULT 0")
+    except Exception:
+        pass  # table doesn't exist yet — init_schema will create it
+
+
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
+    _migrate_snapshots(conn)
     _migrate_ark_reachability(conn)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS asn_corpus (
