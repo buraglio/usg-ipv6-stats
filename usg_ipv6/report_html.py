@@ -512,7 +512,15 @@ def _page(
   <a href="#hitlist">Live Endpoints</a>
   <a href="#asn-explorer">ASN Explorer</a>
   <a href="#data-sources">Data Sources</a>
+  <a href="#disclaimer">Disclaimer</a>
 </nav>
+
+<div class="data-notice">
+  All statistics are derived from public data sources. See the
+  <a href="#data-sources">Data Sources</a> section for details.
+  This dashboard strives for accuracy, but figures may temporarily skew
+  during database rebuilds or historical backfill runs.
+</div>
 
 <main>
 
@@ -628,8 +636,58 @@ def _page(
     Prefix-to-ASN attribution uses
     <a href="https://www.caida.org/catalog/datasets/routeviews-prefix2as/">CAIDA pfx2as</a>
     derived from the same RouteViews data.
+    The USG ASN corpus is built from
+    <a href="https://www.arin.net/resources/registry/whois/">ARIN WHOIS</a> records and
+    <a href="https://www.caida.org/catalog/datasets/as-organizations/">CAIDA AS2Org</a>
+    organization data, with manual verification for ambiguous entries.
   </p>
   {snap_tbl}
+</section>
+
+<section id="disclaimer">
+  <h2>Disclaimer</h2>
+  <div class="disclaimer-box">
+    <p>
+      All data presented on this dashboard is derived entirely from <strong>publicly
+      available data sources</strong>, including RouteViews MRT RIB dumps, ARIN WHOIS
+      records, CAIDA AS2Org and prefix-to-ASN datasets, and the TU Munich IPv6 Hitlist.
+      No non-public, classified, or proprietary data is used. See the
+      <a href="#data-sources">Data Sources</a> section for the full inventory of
+      ingested snapshots.
+    </p>
+    <p>
+      This dashboard strives for accuracy, but statistics may temporarily reflect
+      incomplete or transitional states in the following circumstances:
+    </p>
+    <ul>
+      <li>
+        <strong>Historical backfill runs</strong> — when older snapshots are being
+        ingested to extend the trend charts, intermediate states will show fewer
+        data points than the final result.
+      </li>
+      <li>
+        <strong>Database rebuilds</strong> — if the underlying DuckDB is rebuilt
+        from scratch or re-seeded, prefix counts and adoption percentages may
+        appear lower than normal until all collectors have re-ingested current data.
+      </li>
+      <li>
+        <strong>Corpus updates</strong> — when ASNs are added to or removed from
+        the tracking corpus, adoption rates will shift to reflect the new set of
+        monitored autonomous systems.
+      </li>
+    </ul>
+    <p>
+      The ASN corpus is maintained on a best-effort basis. ASN-to-agency mappings
+      are derived from ARIN registration data and CAIDA organization records, which
+      may lag real-world organizational changes. Some registered ASNs may not be
+      visible in the public BGP table (for example, DoD networks operating on the
+      classified DISN backbone) and are excluded from adoption rate calculations.
+    </p>
+    <p class="disclaimer-source">
+      Source code and methodology:
+      <a href="https://github.com/buraglio/usg-ipv6-stats">github.com/buraglio/usg-ipv6-stats</a>
+    </p>
+  </div>
 </section>
 
 </main>
@@ -1254,6 +1312,27 @@ tr.tier-inactive td { color: var(--muted); }
 .hchip.responsive { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
 .hchip.aliased    { background: #fff8c5; color: #9a6700; border-color: #e3b341; }
 .hchip.real       { background: #dafbe1; color: #116329; border-color: #56d364; }
+
+.data-notice {
+  background: #fffbea; border-bottom: 1px solid #d4a72c;
+  color: #633c01; font-size: 0.84rem; padding: 0.55rem 1.5rem;
+  text-align: center; line-height: 1.5;
+}
+.data-notice a { color: #633c01; font-weight: 600; text-decoration: underline; }
+.data-notice a:hover { color: #3d2400; }
+
+.disclaimer-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  border-radius: 8px; padding: 1.5rem 1.75rem;
+  font-size: 0.9rem; line-height: 1.7;
+  display: flex; flex-direction: column; gap: 0.9rem;
+}
+.disclaimer-box ul {
+  margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: 0.5rem;
+}
+.disclaimer-box li { line-height: 1.6; }
+.disclaimer-source { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
 
 footer {
   text-align: center; padding: 2rem 1rem;
