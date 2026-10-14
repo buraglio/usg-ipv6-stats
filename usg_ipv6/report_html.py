@@ -166,7 +166,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
             for af, ts in latest_ts_by_af.items()
         )
         asn_prefix_rows = conn.execute(f"""
-            SELECT origin_asn, af, prefix
+            SELECT DISTINCT origin_asn, af, prefix
             FROM ({af_clauses_asn})
             WHERE origin_asn IN (SELECT asn FROM asn_corpus)
             ORDER BY origin_asn, af, prefix

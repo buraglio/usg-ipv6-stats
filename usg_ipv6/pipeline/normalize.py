@@ -15,12 +15,14 @@ def load_parquet(
     table = pq.read_table(parquet_path)
     df = table.to_pydict()
 
-    rows_to_insert = [
+    # Use a set to deduplicate: MRT RIBs contain one entry per peer per prefix,
+    # so the same (prefix, origin_asn) appears once per collector peer (~40x).
+    rows_to_insert = list({
         (snapshot_ts, collector, 0, df["prefix"][i], df["origin_asn"][i],
          int(df["prefix_len"][i]), int(df["af"][i]))
         for i in range(len(df["prefix"]))
         if df["origin_asn"][i] in corpus_asns
-    ]
+    })
 
     if rows_to_insert:
         conn.executemany(
