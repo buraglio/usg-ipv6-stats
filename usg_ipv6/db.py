@@ -19,18 +19,37 @@ def _migrate_ark_reachability(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 def _migrate_snapshots(conn: duckdb.DuckDBPyConnection) -> None:
-    """Add source_url and byte_count columns if missing from old schema."""
+    """Recreate snapshots with source_url and byte_count if the old schema lacks them."""
     try:
         cols = {
             row[0]
             for row in conn.execute("DESCRIBE snapshots").fetchall()
         }
-        if "source_url" not in cols:
-            conn.execute("ALTER TABLE snapshots ADD COLUMN source_url VARCHAR NOT NULL DEFAULT ''")
-        if "byte_count" not in cols:
-            conn.execute("ALTER TABLE snapshots ADD COLUMN byte_count BIGINT NOT NULL DEFAULT 0")
     except Exception:
-        pass  # table doesn't exist yet — init_schema will create it
+        return  # table doesn't exist yet — init_schema will create it
+
+    if "source_url" in cols and "byte_count" in cols:
+        return  # already up to date
+
+    # Recreate with full schema, preserving existing rows.
+    conn.execute("""
+        CREATE TABLE _snapshots_new (
+            snapshot_ts  TIMESTAMP NOT NULL,
+            collector    VARCHAR   NOT NULL,
+            source_url   VARCHAR   NOT NULL DEFAULT '',
+            byte_count   BIGINT    NOT NULL DEFAULT 0,
+            status       VARCHAR   NOT NULL,
+            processed_at TIMESTAMP,
+            PRIMARY KEY (snapshot_ts, collector)
+        )
+    """)
+    conn.execute("""
+        INSERT INTO _snapshots_new (snapshot_ts, collector, source_url, byte_count, status, processed_at)
+        SELECT snapshot_ts, collector, '' AS source_url, 0 AS byte_count, status, processed_at
+        FROM snapshots
+    """)
+    conn.execute("DROP TABLE snapshots")
+    conn.execute("ALTER TABLE _snapshots_new RENAME TO snapshots")
 
 
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
