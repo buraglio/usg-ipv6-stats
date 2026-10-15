@@ -714,6 +714,7 @@ def _page(
     <input type="search" id="asn-search" placeholder="Search agency or ASN…"
            oninput="filterASNs(this.value)" autocomplete="off">
     <span id="asn-count" class="asn-count"></span>
+    <button id="asn-dark-toggle" class="dark-toggle" onclick="toggleDarkASNs()">Show dark ASNs</button>
   </div>
 
   <div id="asn-detail" class="asn-detail" style="display:none">
@@ -982,11 +983,20 @@ let hitlistChart = null;
   }});
 }})();
 
-// ── ASN row IPv4/IPv6 presence pills ─────────────────────────────────────────
+// ── ASN row pills + active/dark classification ────────────────────────────────
+let _showDarkASNs = false;
+
 (function() {{
+  let darkCount = 0;
   document.querySelectorAll('#corpus-table .asn-row').forEach(row => {{
     const asn = row.dataset.asn;
     const pfx = DATA.asn_prefixes[asn] || {{v4: [], v6: []}};
+    const isActive = pfx.v6.length > 0 || pfx.v4.length > 0;
+    row.dataset.active = isActive ? '1' : '0';
+    if (!isActive) {{
+      row.style.display = 'none';
+      darkCount++;
+    }}
     const cell = row.querySelector('td');
     if (pfx.v6.length) {{
       cell.insertAdjacentHTML('beforeend',
@@ -997,23 +1007,56 @@ let hitlistChart = null;
         `<span class="af-pill v4-pill" title="${{pfx.v4.length}} IPv4 prefix${{pfx.v4.length !== 1 ? 'es' : ''}} announced">● v4</span>`);
     }}
   }});
+  const btn = document.getElementById('asn-dark-toggle');
+  if (btn) {{
+    if (darkCount) {{
+      btn.textContent = `Show dark ASNs (${{darkCount}})`;
+    }} else {{
+      btn.hidden = true;
+    }}
+  }}
+  const active = document.querySelectorAll('#corpus-table .asn-row[data-active="1"]').length;
+  const badge = document.getElementById('asn-count');
+  if (badge) badge.textContent = `${{active}} active ASNs`;
 }})();
 
 // ── ASN explorer ──────────────────────────────────────────────────────────────
+function toggleDarkASNs() {{
+  _showDarkASNs = !_showDarkASNs;
+  const btn = document.getElementById('asn-dark-toggle');
+  if (btn) {{
+    const darkCount = document.querySelectorAll('#corpus-table .asn-row[data-active="0"]').length;
+    btn.textContent = _showDarkASNs
+      ? `Active only (hide ${{darkCount}} dark)`
+      : `Show dark ASNs (${{darkCount}})`;
+    btn.classList.toggle('showing-dark', _showDarkASNs);
+  }}
+  filterASNs(document.getElementById('asn-search').value);
+}}
+
 function filterASNs(q) {{
   const rows = document.querySelectorAll('#corpus-table .asn-row');
   q = q.toLowerCase().trim();
   let shown = 0;
   rows.forEach(row => {{
-    const match = !q ||
+    const isDark = row.dataset.active === '0';
+    const matchesSearch = !q ||
       row.dataset.asn.includes(q) ||
       row.dataset.agency.includes(q) ||
       row.dataset.tier.includes(q);
-    row.style.display = match ? '' : 'none';
-    if (match) shown++;
+    const visible = matchesSearch && (_showDarkASNs || !isDark);
+    row.style.display = visible ? '' : 'none';
+    if (visible) shown++;
   }});
+  const total = rows.length;
+  const active = document.querySelectorAll('#corpus-table .asn-row[data-active="1"]').length;
   const badge = document.getElementById('asn-count');
-  if (badge) badge.textContent = q ? `${{shown}} of ${{rows.length}} ASNs` : `${{rows.length}} ASNs`;
+  if (!badge) return;
+  if (q) {{
+    badge.textContent = `${{shown}} of ${{_showDarkASNs ? total : active}} ASNs`;
+  }} else {{
+    badge.textContent = _showDarkASNs ? `${{total}} ASNs` : `${{active}} active ASNs`;
+  }}
 }}
 
 function showASN(asn) {{
@@ -1122,12 +1165,6 @@ function closeASN() {{
   if (asnChart) {{ asnChart.destroy(); asnChart = null; }}
 }}
 
-// Initialize count badge
-(function() {{
-  const rows = document.querySelectorAll('#corpus-table .asn-row');
-  const badge = document.getElementById('asn-count');
-  if (badge) badge.textContent = `${{rows.length}} ASNs`;
-}})();
 </script>
 
 </body>
@@ -1714,6 +1751,14 @@ tr.tier-inactive td { color: var(--muted); }
 }
 .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.15); }
 .asn-count { font-size: 0.85rem; color: var(--muted); }
+.dark-toggle {
+  font-size: 0.8rem; padding: 0.3rem 0.7rem;
+  border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  cursor: pointer; white-space: nowrap; line-height: 1.4;
+}
+.dark-toggle:hover { border-color: var(--accent); color: var(--text); }
+.dark-toggle.showing-dark { background: var(--even-row); color: var(--text); border-color: var(--muted); }
 
 .asn-detail {
   background: var(--surface); border: 1px solid var(--border);

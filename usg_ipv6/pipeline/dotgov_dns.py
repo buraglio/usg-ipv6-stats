@@ -37,10 +37,11 @@ def _fetch_federal_domains() -> list[str]:
     r = requests.get(DOTGOV_CSV_URL, timeout=30)
     r.raise_for_status()
     reader = csv.DictReader(io.StringIO(r.text))
-    # Column is "Domain Name" in the CISA CSV
     domains = []
     for row in reader:
-        d = (row.get("Domain Name") or row.get("domain_name") or "").strip().lower()
+        # Normalise keys to lowercase so "Domain name", "Domain Name", etc. all match
+        lrow = {k.lower(): v for k, v in row.items()}
+        d = lrow.get("domain name", "").strip().lower()
         if d:
             domains.append(d)
     return domains
