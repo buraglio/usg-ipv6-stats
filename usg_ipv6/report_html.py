@@ -552,7 +552,11 @@ def _page(
     Toggle address families using the legend.
   </p>
   <div class="chart-wrap card">
+    <div class="chart-toolbar">
+      <button id="trend-zoom-reset" class="zoom-reset-btn" onclick="if(trendChart)trendChart.resetZoom()" hidden>Reset zoom</button>
+    </div>
     <canvas id="trend-chart" height="120"></canvas>
+    <p class="chart-hint">Drag to zoom &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; double-click to reset</p>
   </div>
 </section>
 
@@ -707,13 +711,18 @@ def _page(
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
-  integrity="sha512-NqRhTU0DQNHNUO0pTx6zPLJ11YhOqj4MRcvv0+amxJk+re07ykGhFuhMmrQpfTRAUx8nQ4EcMuX/m8cz2K8vIQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 const DATA = {js_data};
 
-// asnChart declared before any IIFE so TDZ can't block showASN
+// Chart instances — declared before any IIFE so TDZ can't block references
 let asnChart = null;
+let trendChart = null;
+let hitlistChart = null;
 
 // ── Trend chart ───────────────────────────────────────────────────────────────
 (function() {{
@@ -723,7 +732,7 @@ let asnChart = null;
       '<p class="empty" style="padding:2rem">No snapshot data yet — run the RouteViews MRT Ingest workflow.</p>';
     return;
   }}
-  new Chart(ctx, {{
+  trendChart = new Chart(ctx, {{
     type: 'line',
     data: {{
       labels: DATA.dates,
@@ -760,12 +769,26 @@ let asnChart = null;
         tooltip: {{ callbacks: {{
           label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.parsed.y.toLocaleString()}}`
         }} }},
+        zoom: {{
+          zoom: {{
+            drag: {{ enabled: true, backgroundColor: 'rgba(9,105,218,0.12)' }},
+            wheel: {{ enabled: true, speed: 0.08 }},
+            pinch: {{ enabled: true }},
+            mode: 'x',
+            onZoomComplete: () => {{ document.getElementById('trend-zoom-reset').hidden = false; }},
+          }},
+          pan: {{ enabled: true, mode: 'x' }},
+        }},
       }},
       scales: {{
         y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }},
         x: {{ ticks: {{ maxRotation: 45 }} }},
       }},
     }},
+  }});
+  ctx.addEventListener('dblclick', () => {{
+    trendChart.resetZoom();
+    document.getElementById('trend-zoom-reset').hidden = true;
   }});
 }})();
 
@@ -778,7 +801,7 @@ let asnChart = null;
       '<p class="empty" style="padding:2rem">No hitlist trend data yet.</p>';
     return;
   }}
-  new Chart(ctx, {{
+  hitlistChart = new Chart(ctx, {{
     type: 'line',
     data: {{
       labels: DATA.hitlist_dates,
@@ -798,12 +821,26 @@ let asnChart = null;
         tooltip: {{ callbacks: {{
           label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.parsed.y.toLocaleString()}}`
         }} }},
+        zoom: {{
+          zoom: {{
+            drag: {{ enabled: true, backgroundColor: 'rgba(9,105,218,0.12)' }},
+            wheel: {{ enabled: true, speed: 0.08 }},
+            pinch: {{ enabled: true }},
+            mode: 'x',
+            onZoomComplete: () => {{ document.getElementById('hitlist-zoom-reset').hidden = false; }},
+          }},
+          pan: {{ enabled: true, mode: 'x' }},
+        }},
       }},
       scales: {{
         y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }},
         x: {{ ticks: {{ maxRotation: 45 }} }},
       }},
     }},
+  }});
+  ctx.addEventListener('dblclick', () => {{
+    hitlistChart.resetZoom();
+    document.getElementById('hitlist-zoom-reset').hidden = true;
   }});
 }})();
 
@@ -1027,7 +1064,11 @@ def _hitlist_section(hitlist_data) -> str:
     Total responsive IPv6 addresses across all corpus ASNs per weekly hitlist observation.
   </p>
   <div class="chart-wrap card" style="margin-bottom:1.5rem">
+    <div class="chart-toolbar">
+      <button id="hitlist-zoom-reset" class="zoom-reset-btn" onclick="if(hitlistChart)hitlistChart.resetZoom()" hidden>Reset zoom</button>
+    </div>
     <canvas id="hitlist-trend-chart" height="100"></canvas>
+    <p class="chart-hint">Drag to zoom &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; double-click to reset</p>
   </div>
 
   <h3 style="margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600">
@@ -1218,6 +1259,13 @@ h3 { font-size: 1rem; font-weight: 600; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
 .chart-wrap { padding: 1.25rem; }
+.chart-toolbar { display: flex; justify-content: flex-end; min-height: 1.6rem; margin-bottom: 0.25rem; }
+.zoom-reset-btn {
+  font-size: 0.78rem; padding: 0.2rem 0.65rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+}
+.zoom-reset-btn:hover { background: var(--th-bg); color: var(--fg); }
+.chart-hint { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 0.4rem; }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 th {
