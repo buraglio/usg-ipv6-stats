@@ -35,6 +35,41 @@ def _origin_asn(rib_entry: dict) -> int | None:
     return None
 
 
+def _communities(rib_entry: dict) -> list[str]:
+    """
+    Extract standard BGP communities (type 8) from a RIB entry.
+    Returns a list of "asn:value" strings, e.g. ["65000:100", "65000:200"].
+    Large communities (type 32) are formatted as "asn:ldp1:ldp2".
+    """
+    result: list[str] = []
+    for attr in rib_entry.get("path_attributes", []):
+        attr_type_keys = list(attr.get("type", {}).keys())
+        if not attr_type_keys:
+            continue
+        attr_type = attr_type_keys[0]
+
+        # Standard community (RFC 1997)
+        if attr_type == 8:
+            for comm in attr.get("value", []):
+                if isinstance(comm, dict):
+                    asn_part = comm.get("asn", 0)
+                    val_part = comm.get("value", 0)
+                    result.append(f"{asn_part}:{val_part}")
+                elif isinstance(comm, int):
+                    result.append(f"{(comm >> 16) & 0xFFFF}:{comm & 0xFFFF}")
+
+        # Large community (RFC 8092)
+        elif attr_type == 32:
+            for comm in attr.get("value", []):
+                if isinstance(comm, dict):
+                    ga = comm.get("global_administrator", 0)
+                    ldp1 = comm.get("local_data_part_1", 0)
+                    ldp2 = comm.get("local_data_part_2", 0)
+                    result.append(f"{ga}:{ldp1}:{ldp2}")
+
+    return result
+
+
 def parse_mrt(mrt_path: str, parquet_path: str) -> int:
     rows: list[dict] = []
     for entry in Reader(mrt_path):
@@ -56,11 +91,13 @@ def parse_mrt(mrt_path: str, parquet_path: str) -> int:
             origin = _origin_asn(rib_entry)
             if origin is None:
                 continue
+            comms = _communities(rib_entry)
             rows.append({
                 "prefix": prefix,
                 "origin_asn": origin,
                 "prefix_len": prefix_len,
                 "af": af,
+                "communities": ",".join(comms) if comms else "",
             })
 
     schema = pa.schema([
@@ -68,9 +105,10 @@ def parse_mrt(mrt_path: str, parquet_path: str) -> int:
         pa.field("origin_asn", pa.int64()),
         pa.field("prefix_len", pa.int16()),
         pa.field("af", pa.int8()),
+        pa.field("communities", pa.string()),
     ])
     table = pa.table(
-        {k: [r[k] for r in rows] for k in ["prefix", "origin_asn", "prefix_len", "af"]},
+        {k: [r[k] for r in rows] for k in ["prefix", "origin_asn", "prefix_len", "af", "communities"]},
         schema=schema,
     )
     pq.write_table(table, parquet_path)
