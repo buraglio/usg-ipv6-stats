@@ -15,6 +15,8 @@ def load_parquet(
     table = pq.read_table(parquet_path)
     df = table.to_pydict()
 
+    has_communities = "communities" in df
+
     # Use a set to deduplicate: MRT RIBs contain one entry per peer per prefix,
     # so the same (prefix, origin_asn) appears once per collector peer (~40x).
     rows_to_insert = list({
@@ -29,6 +31,27 @@ def load_parquet(
             "INSERT INTO prefix_records VALUES (?, ?, ?, ?, ?, ?, ?)",
             rows_to_insert,
         )
+
+    # Store BGP communities for corpus prefixes.  Communities are per-peer so
+    # we collect the union across all peers for each (prefix, origin_asn) pair.
+    if has_communities:
+        community_rows: set[tuple] = set()
+        for i in range(len(df["prefix"])):
+            if df["origin_asn"][i] not in corpus_asns:
+                continue
+            raw = df["communities"][i] or ""
+            for comm in raw.split(","):
+                comm = comm.strip()
+                if comm:
+                    community_rows.add(
+                        (snapshot_ts, collector, df["prefix"][i],
+                         df["origin_asn"][i], comm)
+                    )
+        if community_rows:
+            conn.executemany(
+                "INSERT OR REPLACE INTO bgp_communities VALUES (?,?,?,?,?)",
+                list(community_rows),
+            )
 
     conn.execute(
         "UPDATE snapshots SET status = 'processed', processed_at = NOW() "

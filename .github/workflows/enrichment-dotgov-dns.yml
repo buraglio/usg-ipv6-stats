@@ -1,0 +1,74 @@
+name: Enrichment — .gov DNS Enumeration
+
+# Resolves NS, MX, and web AAAA records for all federal .gov domains
+# from the CISA dotgov-data registry, then checks which addresses fall
+# inside corpus-tracked IPv6 prefixes.  Results land in domain_services
+# with source='dotgov_dns'.  Run daily; completes in ~15 minutes.
+
+on:
+  schedule:
+    - cron: '42 6 * * *'    # 06:42 UTC daily
+  workflow_dispatch:
+    inputs:
+      observation_date:
+        description: Override observation date (YYYY-MM-DD, default today)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  dotgov-dns:
+    name: .gov DNS AAAA Enumeration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Run .gov DNS enumeration
+        env:
+          OBS_DATE: ${{ inputs.observation_date }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os
+          from usg_ipv6.pipeline.dotgov_dns import run_dotgov_dns
+          from datetime import date
+
+          obs_date_str = os.environ.get('OBS_DATE', '').strip()
+          obs_date = date.fromisoformat(obs_date_str) if obs_date_str else None
+
+          result = run_dotgov_dns('data/usg_ipv6.duckdb', observation_date=obs_date)
+          print(json.dumps(result, indent=2))
+          PYEOF
+
+      - name: Upload updated DuckDB
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then exit 0; fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "dotgov DNS enrichment" \
+               --prerelease

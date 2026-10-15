@@ -20,6 +20,7 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Pipeline: backfill](#pipeline-backfill)
 - [Ark reachability](#ark-reachability)
 - [IPv6 Hitlist: live endpoint detection](#ipv6-hitlist-live-endpoint-detection)
+- [Active-prefix enrichment](#active-prefix-enrichment)
 - [Database schema](#database-schema)
 - [Python API](#python-api)
 - [Data sources](#data-sources)
@@ -364,6 +365,38 @@ Downloads the TU Munich IPv6 Hitlist responsive-address file, matches each addre
 
 **Aliased prefixes:** When a prefix is "aliased," any address within it responds to probes (a router answers for the whole block). These are counted separately as `aliased_count` so over-counting from inflated host counts is visible.
 
+### Active-prefix Enrichment Workflows
+
+Four enrichment workflows run independently of the BGP ingests and write to separate tables. Each downloads the existing DuckDB from `data-latest`, runs its enrichment pass, and re-uploads.
+
+#### .gov DNS Enumeration (`enrichment-dotgov-dns.yml`)
+
+- **Scheduled**: daily 06:42 UTC
+- **Manual dispatch**: accepts `observation_date` (YYYY-MM-DD, default today)
+- Fetches the full [CISA dotgov-data](https://github.com/cisagov/dotgov-data) CSV of all registered federal `.gov` domains. For each domain, resolves NS, MX, and apex+www AAAA records concurrently (20 workers). Addresses that fall inside corpus IPv6 prefixes are written to `domain_services` with `source='dotgov_dns'`.
+- **Why:** Name servers, mail servers, and web servers communicate over TCP (ports 53, 25, 443) and are visible through firewalls that silently drop ICMP — the primary blind spot of the TU Munich hitlist scanner.
+
+#### NIST USGv6 Deployment Monitor (`enrichment-nist.yml`)
+
+- **Scheduled**: daily 20:17 UTC (after NIST publishes their ~15:00 ET update)
+- **Manual dispatch**: no inputs required
+- Scrapes [usgv6-deploymon.nist.gov](https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov) for per-domain IPv6 service metrics: server count, v6-addressed, v6-reachable, v6-functional for DNS / mail / web, plus DNSSEC status (Signed / Valid / Chained). Measured hostnames are resolved to AAAA and matched against corpus prefixes. Results go to `nist_deploymon` and `domain_services` (`source='nist'`).
+- **Why:** NIST measures active TCP reachability from a fixed government vantage point; DNSSEC chaining is a strong signal that a domain is actively maintained.
+
+#### Certificate Transparency (`enrichment-cert-transparency.yml`)
+
+- **Scheduled**: weekly Mondays 03:23 UTC
+- **Manual dispatch**: accepts `recent_days` (default 365)
+- Queries [crt.sh](https://crt.sh) for all TLS certificates issued to `*.gov` subdomains within the lookback window. Subject Alternative Names (SANs) are resolved to AAAA and matched against corpus prefixes. Results land in `domain_services` (`source='ct'`).
+- **Why:** Certificate issuance is a reliable last-active lower bound for a hostname. CT logs also surface subdomains that do not appear in public DNS zone data.
+
+#### RPKI Validity (`enrichment-rpki.yml`)
+
+- **Scheduled**: weekly Tuesdays 04:11 UTC
+- **Manual dispatch**: accepts `af` (4, 6, or 0 for both; default 6)
+- Checks every corpus prefix / origin-AS pair against the [Cloudflare RPKI validity API](https://rpki.cloudflare.com/api/v1/validity/), falling back to the RIPE Stat API. Results — `valid`, `invalid`, or `not_found` — are stored in `rpki_validity` along with the ROA max-length.
+- **Why:** A `valid` ROA means the operator explicitly authorized this origin AS for this prefix, a strong signal of intentional, maintained operation. `invalid` may indicate route leaks or stale announcements worth investigation.
+
 ### Deploy GitHub Pages (`pages.yml`)
 
 Generates the static HTML dashboard and deploys to GitHub Pages.
@@ -656,6 +689,42 @@ uv run usg hitlist stats --date 2024-10-04
 
 ---
 
+## Active-prefix enrichment
+
+BGP routing table entries prove that a prefix is *announced*, not that it is *operationally active*. A block can be advertised by a defunct agency, inherited by a successor, or covered by a stale ROA with no live hosts behind it. The enrichment layer cross-references announced prefixes against several independent signals to distinguish maintained infrastructure from routing-table artifacts.
+
+### Why the TU Munich hitlist is not sufficient alone
+
+The TU Munich IPv6 Hitlist sends ICMPv6 echo requests from a single vantage point. Firewalls that drop ICMP — common on federal perimeters — cause reachable hosts to appear offline. Hitlist coverage is strong for open infrastructure but misses:
+
+- Hosts reachable only over TCP (name servers, mail servers, HTTPS endpoints)
+- Prefixes that are routed but carry no directly-pingable addresses (transit, management, VPN)
+- Hosts behind middleboxes that rate-limit or drop probes from unknown sources
+
+### Enrichment sources
+
+| Source | Signal class | Cadence | Why it helps |
+| ------ | ----------- | ------- | ----------- |
+| **CISA dotgov-data DNS enumeration** | NS / MX / AAAA for all `.gov` domains | Daily | TCP services on port 53, 25, 443 visible through ICMP-blocking firewalls |
+| **NIST USGv6 Deployment Monitor** | Per-domain IPv6 service metrics + DNSSEC status | Daily | Independent TCP reachability measurement; DNSSEC chain = actively maintained zone |
+| **Certificate Transparency (crt.sh)** | TLS certs issued to `*.gov` subdomains in last year | Weekly | Cert issuance date = reliable last-active lower bound; reveals subdomains absent from public DNS |
+| **RPKI validity (Cloudflare / RIPE Stat)** | ROA coverage for each prefix / origin-AS pair | Weekly | `valid` ROA = operator explicitly authorized this prefix, strong maintenance signal |
+| **Rapid7 FDNS AAAA** *(stub)* | Forward DNS AAAA records for the whole `.gov` namespace | On-demand | Broadest hostname coverage; requires Rapid7 Insight account |
+| **RIPE Atlas DNS + TCP** *(stub)* | DNS AAAA + TCP reach from US-based IPv6 probes | On-demand | Vantage-point diversity beyond a single scanner; requires Atlas API key |
+| **BGP community tags** | Standard and large communities on RIB entries | Per BGP ingest | Blackhole (`65535:666`) and traffic-engineering tags identify filtered or deprioritized prefixes |
+
+### Enrichment methodology
+
+Each enrichment source resolves hostnames or checks prefix metadata independently. Results are stored in the `domain_services`, `nist_deploymon`, `rpki_validity`, and `bgp_communities` tables (see [Database schema](#database-schema) below). A prefix is considered "likely active" when it has at least one corroborating signal from an enrichment source that is independent of the BGP table itself.
+
+### Setting up stubs
+
+**Rapid7 FDNS** (`usg_ipv6/pipeline/rapid7_fdns.py`): Download a Sonar FDNS AAAA `.json.gz` file from [opendata.rapid7.com](https://opendata.rapid7.com/sonar.fdns_v2/) (requires free Insight account). Pass the local path to `run_rapid7_fdns(db_path, fdns_path=...)`.
+
+**RIPE Atlas** (`usg_ipv6/pipeline/ripe_atlas.py`): Register at [atlas.ripe.net](https://atlas.ripe.net/), generate an API key with *Create User Defined Measurements* permission, and set `RIPE_ATLAS_API_KEY` in GitHub Actions secrets.
+
+---
+
 ## Database schema
 
 The analytical store is a single DuckDB file at `data/usg_ipv6.duckdb`. All tables are created automatically on first run. ASN columns use `BIGINT` to accommodate the full 32-bit unsigned ASN range (0–4,294,967,295).
@@ -764,6 +833,64 @@ One row per matched (observation date, address). Provides address-level detail f
 | `matched_prefix` | VARCHAR | Corpus IPv6 prefix the address fell within |
 | `is_aliased` | BOOLEAN | TRUE if the address's prefix is in the aliased-prefixes list |
 | `hitlist_date` | DATE | Date of the hitlist file used |
+
+### `nist_deploymon`
+
+One row per (measurement date, domain). Written by `enrichment-nist.yml`.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `measurement_date` | DATE PK | Date of the NIST scrape |
+| `domain` | VARCHAR PK | Federal `.gov` domain |
+| `org` | VARCHAR | Registered organization |
+| `service` | VARCHAR PK | `dns`, `mail`, or `web` |
+| `server_count` | INTEGER | Total servers measured for this service |
+| `v6_addr_count` | INTEGER | Servers with at least one IPv6 address |
+| `v6_reach_count` | INTEGER | Servers reachable over IPv6 |
+| `v6_func_count` | INTEGER | Servers where IPv6 service is functional |
+| `status` | VARCHAR | NIST status code (`O`, `I`, `M`, `L`, or `-`) |
+| `dnssec_signed` | BOOLEAN | Zone is DNSSEC-signed |
+| `dnssec_valid` | BOOLEAN | DNSSEC signature validates |
+| `dnssec_chained` | BOOLEAN | DNSSEC chain of trust complete |
+
+### `domain_services`
+
+One row per (observation date, domain, record type, hostname). Written by all domain-level enrichment sources.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `observation_date` | DATE PK | Date the record was observed |
+| `domain` | VARCHAR PK | Federal `.gov` domain |
+| `record_type` | VARCHAR PK | `NS`, `MX`, `AAAA`, `atlas_dns`, or `CT` |
+| `hostname` | VARCHAR PK | Resolved hostname |
+| `ipv6_address` | VARCHAR | IPv6 address that resolved from this hostname |
+| `matched_prefix` | VARCHAR | Corpus IPv6 prefix the address falls within (NULL if no match) |
+| `matched_asn` | BIGINT | Corpus ASN owning that prefix (NULL if no match) |
+| `source` | VARCHAR | `dotgov_dns`, `nist`, `ct`, `ripe_atlas`, or `rapid7` |
+
+### `rpki_validity`
+
+One row per (check date, prefix, origin ASN). Written by `enrichment-rpki.yml`.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `check_date` | DATE PK | Date the RPKI check ran |
+| `prefix` | VARCHAR PK | CIDR prefix string |
+| `origin_asn` | BIGINT PK | Origin AS from the BGP table |
+| `status` | VARCHAR | `valid`, `invalid`, or `not_found` |
+| `roa_max_length` | INTEGER | ROA max-length (NULL when status ≠ `valid`) |
+
+### `bgp_communities`
+
+One row per (snapshot, collector, prefix, origin ASN, community string). Written during BGP MRT normalization.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `snapshot_ts` | TIMESTAMP PK | Source snapshot timestamp |
+| `collector` | VARCHAR PK | Source collector |
+| `prefix` | VARCHAR PK | CIDR prefix string |
+| `origin_asn` | BIGINT PK | Origin ASN |
+| `community` | VARCHAR PK | Community string: `asn:value` (standard) or `asn:ld1:ld2` (large) |
 
 **Example queries:**
 
@@ -996,6 +1123,13 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping (published 1st of each month) | Public HTTP, no auth |
 | [ARIN WHOIS REST API](https://www.arin.net/resources/registry/whois/rws/api/) | Authoritative ASN registration | Public REST API, no auth |
 | [TU Munich IPv6 Hitlist](https://ipv6hitlist.github.io) | Verified responsive IPv6 addresses (weekly) | Public HTTP, no auth |
+| [CISA dotgov-data](https://github.com/cisagov/dotgov-data) | Full list of registered federal `.gov` domains (enrichment) | Public GitHub, no auth |
+| [NIST USGv6 Deployment Monitor](https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov) | Per-domain IPv6 service metrics and DNSSEC status (enrichment) | Public HTTP, no auth |
+| [crt.sh Certificate Transparency](https://crt.sh) | TLS certificates issued to `*.gov` subdomains (enrichment) | Public REST API, no auth |
+| [Cloudflare RPKI API](https://rpki.cloudflare.com/api/v1/validity/) | RPKI ROA validity for corpus prefix / ASN pairs (enrichment) | Public REST API, no auth |
+| [RIPE Stat RPKI API](https://stat.ripe.net/docs/02.data-api/) | RPKI fallback when Cloudflare API is unavailable (enrichment) | Public REST API, no auth |
+| [Rapid7 Sonar FDNS](https://opendata.rapid7.com/sonar.fdns_v2/) | Forward DNS AAAA records for `.gov` (enrichment stub) | Requires Insight account |
+| [RIPE Atlas](https://atlas.ripe.net/api/v2/) | DNS + TCP reach from US-based IPv6 probes (enrichment stub) | Requires API key + credits |
 
 **ARIN in CI:** ARIN WHOIS is unreachable from GitHub Actions IP ranges. A fast pre-flight check (`arin_reachable()`) detects this and skips ARIN queries rather than burning through retries, falling back to CAIDA-only corpus building.
 
@@ -1028,22 +1162,32 @@ usg_ipv6/
     build.py             # Corpus builder: ARIN + CAIDA merge, CSV + DuckDB output
   pipeline/
     routeviews.py        # RouteViews URL construction and MRT downloader
-    parse.py             # MRT TABLE_DUMP_V2 parser → Parquet (int64 ASNs)
-    normalize.py         # Parquet → prefix_records (filtered to corpus ASNs)
+    parse.py             # MRT TABLE_DUMP_V2 parser → Parquet; BGP community extraction (type 8 + 32)
+    normalize.py         # Parquet → prefix_records + bgp_communities (filtered to corpus ASNs)
     caida_pfx2as.py      # CAIDA pfx2as downloader and loader
     runner.py            # Orchestrator: run_incremental, run_backfill
     lpm.py               # Stdlib-only longest-prefix-match engine (IPv6)
     ark.py               # CAIDA Ark downloader, parser, and ingest orchestrator
     hitlist.py           # TU Munich IPv6 Hitlist downloader, matcher, and ingest orchestrator
+    dotgov_dns.py        # CISA dotgov-data DNS AAAA enumeration (NS / MX / web) → domain_services
+    nist_deploymon.py    # NIST USGv6 scraper (IPv6 service metrics + DNSSEC) → nist_deploymon, domain_services
+    cert_transparency.py # crt.sh SAN resolution for *.gov certs → domain_services
+    rpki_validity.py     # Cloudflare / RIPE RPKI ROA validation → rpki_validity
+    rapid7_fdns.py       # Stub: Rapid7 Sonar FDNS AAAA ingest (requires Insight account)
+    ripe_atlas.py        # Stub: RIPE Atlas DNS + TCP reach measurements (requires API key)
 
 .github/workflows/
-  corpus-update.yml      # Weekly corpus rebuild; manual dispatch commits to main
-  routeviews-ingest.yml  # Weekly MRT ingest; updates data-latest release
-  routeviews-backfill.yml# Manual historical backfill
-  ark-ingest.yml         # Wednesday Ark IPv6 reachability ingest
-  hitlist-ingest.yml     # Friday IPv6 Hitlist responsive-address ingest
-  publish.yml            # Versioned corpus release on push to main
-  pages.yml              # Static HTML dashboard → GitHub Pages
+  corpus-update.yml             # Weekly corpus rebuild; manual dispatch commits to main
+  routeviews-ingest.yml         # Weekly MRT ingest; updates data-latest release
+  routeviews-backfill.yml       # Manual historical backfill
+  ark-ingest.yml                # Wednesday Ark IPv6 reachability ingest
+  hitlist-ingest.yml            # Friday IPv6 Hitlist responsive-address ingest
+  enrichment-dotgov-dns.yml     # Daily .gov DNS AAAA enumeration (06:42 UTC)
+  enrichment-nist.yml           # Daily NIST USGv6 monitor scrape (20:17 UTC)
+  enrichment-cert-transparency.yml # Weekly crt.sh Certificate Transparency (Mon 03:23 UTC)
+  enrichment-rpki.yml           # Weekly RPKI ROA validity check (Tue 04:11 UTC)
+  publish.yml                   # Versioned corpus release on push to main
+  pages.yml                     # Static HTML dashboard → GitHub Pages
 
 tests/
   conftest.py            # Shared pytest fixtures (in-memory DuckDB)

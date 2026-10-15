@@ -321,6 +321,91 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
             for r in asn_hl_rows
         }
 
+    # ── Enrichment data ───────────────────────────────────────────────────────
+    enrichment_data: dict | None = None
+    try:
+        tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+        enrich: dict = {}
+
+        if "rpki_validity" in tables:
+            row = conn.execute("""
+                SELECT check_date::VARCHAR,
+                       COUNT(*) FILTER (WHERE status = 'valid')     AS valid_,
+                       COUNT(*) FILTER (WHERE status = 'invalid')   AS invalid_,
+                       COUNT(*) FILTER (WHERE status = 'not_found') AS not_found
+                FROM rpki_validity
+                WHERE check_date = (SELECT MAX(check_date) FROM rpki_validity)
+                GROUP BY check_date
+            """).fetchone()
+            if row:
+                enrich["rpki"] = {
+                    "date": row[0], "valid": row[1], "invalid": row[2], "not_found": row[3],
+                }
+
+        if "domain_services" in tables:
+            row = conn.execute("""
+                SELECT observation_date::VARCHAR,
+                       COUNT(DISTINCT domain)  AS domains,
+                       COUNT(DISTINCT ipv6_address) FILTER (WHERE matched_prefix IS NOT NULL) AS matched_addrs,
+                       COUNT(DISTINCT matched_prefix) FILTER (WHERE matched_prefix IS NOT NULL) AS matched_pfx
+                FROM domain_services
+                WHERE observation_date = (SELECT MAX(observation_date) FROM domain_services)
+                GROUP BY observation_date
+            """).fetchone()
+            if row:
+                enrich["domain"] = {
+                    "date": row[0], "domains": row[1],
+                    "matched_addrs": row[2], "matched_pfx": row[3],
+                }
+            src_rows = conn.execute("""
+                SELECT source, COUNT(DISTINCT domain) AS domains,
+                       COUNT(*) FILTER (WHERE matched_prefix IS NOT NULL) AS matches
+                FROM domain_services
+                WHERE observation_date = (SELECT MAX(observation_date) FROM domain_services)
+                GROUP BY source ORDER BY source
+            """).fetchall()
+            enrich["domain_sources"] = [(r[0], r[1], r[2]) for r in src_rows]
+
+        if "nist_deploymon" in tables:
+            row = conn.execute("""
+                SELECT measurement_date::VARCHAR,
+                       COUNT(DISTINCT domain) AS domains,
+                       SUM(v6_func_count) FILTER (WHERE service = 'dns')  AS dns_func,
+                       SUM(v6_func_count) FILTER (WHERE service = 'mail') AS mail_func,
+                       SUM(v6_func_count) FILTER (WHERE service = 'web')  AS web_func,
+                       SUM(CASE WHEN dnssec_chained THEN 1 ELSE 0 END) AS dnssec_chained
+                FROM nist_deploymon
+                WHERE measurement_date = (SELECT MAX(measurement_date) FROM nist_deploymon)
+                GROUP BY measurement_date
+            """).fetchone()
+            if row:
+                enrich["nist"] = {
+                    "date": row[0], "domains": row[1],
+                    "dns_func": row[2] or 0, "mail_func": row[3] or 0,
+                    "web_func": row[4] or 0, "dnssec_chained": row[5] or 0,
+                }
+
+        if "bgp_communities" in tables:
+            row = conn.execute("""
+                SELECT snapshot_ts::VARCHAR,
+                       COUNT(DISTINCT community)             AS unique_communities,
+                       COUNT(DISTINCT prefix)                AS prefixes_with_comm,
+                       COUNT(*) FILTER (WHERE community LIKE '%:666') AS blackhole_rows
+                FROM bgp_communities
+                WHERE snapshot_ts = (SELECT MAX(snapshot_ts) FROM bgp_communities)
+                GROUP BY snapshot_ts
+            """).fetchone()
+            if row:
+                enrich["communities"] = {
+                    "date": row[0][:10], "unique": row[1],
+                    "prefixes": row[2], "blackhole": row[3],
+                }
+
+        if enrich:
+            enrichment_data = enrich
+    except Exception:
+        pass
+
     conn.close()
 
     # ── Build embedded JSON for client-side JS ────────────────────────────────
@@ -348,6 +433,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         by_tier=by_tier,
         ark_data=ark_data,
         hitlist_data=hitlist_data,
+        enrichment_data=enrichment_data,
         js_data=js_data,
     )
     Path(out_path).write_text(html_out, encoding="utf-8")
@@ -380,7 +466,7 @@ def _page_no_data(generated_at: str) -> str:
 
 def _page(
     generated_at, latest_ts, corpus_count, routing_active_count, corpus_rows,
-    snap_rows, totals, by_tier, ark_data, hitlist_data, js_data,
+    snap_rows, totals, by_tier, ark_data, hitlist_data, enrichment_data, js_data,
 ) -> str:
     snap_label = f"Latest snapshot: {latest_ts}" if latest_ts else "No routing data yet"
 
@@ -511,6 +597,7 @@ def _page(
   <a href="#reachability">IPv6 Reachability</a>
   <a href="#hitlist">Live Endpoints</a>
   <a href="#asn-explorer">ASN Explorer</a>
+  <a href="#enrichment">Enrichment</a>
   <a href="#data-sources">Data Sources</a>
   <a href="#disclaimer">Disclaimer</a>
 </nav>
@@ -628,6 +715,8 @@ def _page(
   </div>
 </section>
 
+{_enrichment_section(enrichment_data)}
+
 <section id="data-sources">
   <h2>Data Sources &amp; Snapshot Inventory</h2>
   <p class="section-blurb">
@@ -703,7 +792,11 @@ def _page(
     <a href="https://www.arin.net/resources/registry/whois/">ARIN WHOIS</a> ·
     <a href="https://www.caida.org/catalog/datasets/as-organizations/">CAIDA AS2Org</a> ·
     <a href="https://publicdata.caida.org/datasets/routing/routeviews6-prefix2as/">CAIDA pfx2as rv6</a> ·
-    <a href="https://ipv6hitlist.github.io/">TU Munich IPv6 Hitlist</a>
+    <a href="https://ipv6hitlist.github.io/">TU Munich IPv6 Hitlist</a> ·
+    <a href="https://github.com/cisagov/dotgov-data">CISA dotgov-data</a> ·
+    <a href="https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov">NIST USGv6</a> ·
+    <a href="https://crt.sh">crt.sh CT</a> ·
+    <a href="https://rpki.cloudflare.com">Cloudflare RPKI</a>
   </p>
   <p style="margin-top:0.4rem">
     <a href="https://github.com/buraglio/usg-ipv6-stats">github.com/buraglio/usg-ipv6-stats</a>
@@ -961,6 +1054,140 @@ function closeASN() {{
 
 </body>
 </html>"""
+
+
+def _enrichment_section(data: dict | None) -> str:
+    no_data_msg = """
+<section id="enrichment">
+  <h2>Active-Prefix Enrichment</h2>
+  <p class="section-blurb">
+    BGP routing table entries prove a prefix is <em>announced</em>, not that it is
+    <em>operationally active</em>. Five independent enrichment signals cross-reference
+    announced prefixes against observable internet activity to distinguish maintained
+    infrastructure from routing-table artifacts.
+    TCP services (name servers, mail relays, HTTPS endpoints) are visible through
+    firewalls that silently drop ICMP — the primary blind spot of the TU Munich hitlist
+    scanner. RPKI ROA validity confirms intentional, operator-authorized announcements.
+  </p>
+  <p class="empty">
+    No enrichment data ingested yet.
+    Trigger the <strong>enrichment-dotgov-dns</strong>, <strong>enrichment-nist</strong>,
+    <strong>enrichment-cert-transparency</strong>, or <strong>enrichment-rpki</strong>
+    workflows to populate this section.
+  </p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
+    {cards}
+  </div>
+</section>"""
+
+    def _ecard(color, title, body, footer=""):
+        footer_html = (
+            f'<div style="font-size:0.78rem;color:var(--muted);margin-top:0.6rem">{footer}</div>'
+            if footer else ""
+        )
+        return (f'<div class="stat-card" style="border-left-color:{color}">'
+                f'<div class="label">{title}</div>'
+                f'<div style="font-size:0.82rem;color:var(--muted);margin-top:0.35rem;line-height:1.55">{body}</div>'
+                f'{footer_html}'
+                f'</div>')
+
+    placeholder_cards = "".join([
+        _ecard("#0969da", ".gov DNS Enumeration",
+               "Resolves NS, MX, and AAAA records for all registered federal .gov domains. "
+               "Captures TCP-only services invisible to ICMP probes.",
+               "<strong>Cadence:</strong> Daily · <strong>Table:</strong> <code>domain_services</code>"),
+        _ecard("#8250df", "NIST USGv6 Monitor",
+               "Per-domain IPv6 service metrics (DNS / mail / web) and DNSSEC status from the "
+               "NIST deployment monitor.",
+               "<strong>Cadence:</strong> Daily · <strong>Table:</strong> <code>nist_deploymon</code>"),
+        _ecard("#1a7f37", "Certificate Transparency",
+               "TLS certs issued to *.gov subdomains resolved to AAAA and matched to corpus prefixes. "
+               "Cert date = reliable last-active lower bound.",
+               "<strong>Cadence:</strong> Weekly · <strong>Table:</strong> <code>domain_services</code>"),
+        _ecard("#cf222e", "RPKI Validity",
+               "Cloudflare RPKI API classification of corpus prefix / origin-AS pairs as "
+               "valid, invalid, or not-found.",
+               "<strong>Cadence:</strong> Weekly · <strong>Table:</strong> <code>rpki_validity</code>"),
+        _ecard("#9a6700", "BGP Communities",
+               "Standard and large BGP communities extracted from MRT RIB entries per ingest. "
+               "Identifies blackhole-tagged and traffic-engineered prefixes.",
+               "<strong>Cadence:</strong> Per BGP ingest · <strong>Table:</strong> <code>bgp_communities</code>"),
+    ])
+
+    if data is None:
+        return no_data_msg.format(cards=placeholder_cards)
+
+    def _card(cls, label, value, sub=""):
+        return (f'<div class="stat-card {cls}">'
+                f'<div class="label">{label}</div>'
+                f'<div class="value">{value}</div>'
+                f'{"<div class=sub>" + sub + "</div>" if sub else ""}</div>')
+
+    stat_cards = []
+
+    rpki = data.get("rpki")
+    if rpki:
+        total_rpki = rpki["valid"] + rpki["invalid"] + rpki["not_found"]
+        valid_pct = f"{100 * rpki['valid'] / total_rpki:.0f}%" if total_rpki else "—"
+        stat_cards.append(_card("ok", "RPKI Valid Prefixes", valid_pct,
+                                f"{rpki['valid']:,} valid · {rpki['invalid']:,} invalid · "
+                                f"{rpki['not_found']:,} no ROA (as of {rpki['date']})"))
+
+    dom = data.get("domain")
+    if dom:
+        stat_cards.append(_card("ipv6b", ".gov IPv6 Services", f"{dom['matched_addrs']:,}",
+                                f"IPv6 addresses in corpus prefixes from {dom['domains']:,} "
+                                f".gov domains ({dom['date']})"))
+
+    nist = data.get("nist")
+    if nist:
+        stat_cards.append(_card("ipv6", "NIST v6-Functional",
+                                str(nist["dns_func"] + nist["mail_func"] + nist["web_func"]),
+                                f"DNS {nist['dns_func']} · mail {nist['mail_func']} · "
+                                f"web {nist['web_func']} · DNSSEC chained {nist['dnssec_chained']} "
+                                f"({nist['date']})"))
+
+    comm = data.get("communities")
+    if comm:
+        bh_label = (f"{comm['blackhole']:,} blackhole-tagged" if comm["blackhole"]
+                    else "no blackhole tags")
+        stat_cards.append(_card("indet" if comm["blackhole"] else "corpus",
+                                "BGP Communities",
+                                f"{comm['unique']:,}",
+                                f"unique communities on {comm['prefixes']:,} prefixes · "
+                                f"{bh_label} ({comm['date']})"))
+
+    src_rows = data.get("domain_sources", [])
+    if src_rows:
+        src_body = "".join(
+            f"<tr><td><code>{_esc(r[0])}</code></td>"
+            f"<td class='num'>{r[1]:,}</td>"
+            f"<td class='num'>{r[2]:,}</td></tr>"
+            for r in src_rows
+        )
+        src_tbl = _table(["Source", ".gov Domains Scanned", "Corpus Prefix Matches"], src_body)
+    else:
+        src_tbl = ""
+
+    stat_grid = f'<div class="stat-grid">{"".join(stat_cards)}</div>' if stat_cards else ""
+
+    return f"""
+<section id="enrichment">
+  <h2>Active-Prefix Enrichment</h2>
+  <p class="section-blurb">
+    BGP routing table entries prove a prefix is <em>announced</em>, not that it is
+    <em>operationally active</em>. Five independent enrichment signals cross-reference
+    announced prefixes against observable internet activity — including DNS records,
+    TLS certificate issuance, RPKI ROA coverage, and BGP community tags — to distinguish
+    maintained infrastructure from routing-table artifacts. TCP-based signals capture
+    hosts that firewalls hide from ICMP probes.
+  </p>
+  {stat_grid}
+  {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:1rem'>" + src_tbl + "</div>" if src_tbl else ""}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
+    {placeholder_cards}
+  </div>
+</section>"""
 
 
 def _hitlist_section(hitlist_data) -> str:

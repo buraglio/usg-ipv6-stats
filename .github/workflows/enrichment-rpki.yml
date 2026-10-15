@@ -1,0 +1,80 @@
+name: Enrichment — RPKI Validity
+
+# For every IPv6 prefix currently in prefix_records, queries the
+# Cloudflare RPKI validity API to classify origin-AS / prefix pairs
+# as valid, invalid, or not-found.  Results land in rpki_validity.
+#
+# VALID   → an explicit ROA authorizes this origin AS for this prefix.
+# INVALID → a ROA exists but covers a different AS or max-length.
+# NOT_FOUND → no ROA covers this prefix (common for older USG prefixes).
+#
+# Run weekly — ROA data changes slowly.
+
+on:
+  schedule:
+    - cron: '11 4 * * 2'    # 04:11 UTC every Tuesday
+  workflow_dispatch:
+    inputs:
+      af:
+        description: Address family to check (4, 6, or 0 for both)
+        required: false
+        default: '6'
+        type: choice
+        options: ['6', '4', '0']
+
+permissions:
+  contents: write
+
+jobs:
+  rpki-validity:
+    name: RPKI validity check
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Run RPKI validity check
+        env:
+          AF: ${{ inputs.af || '6' }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os
+          from usg_ipv6.pipeline.rpki_validity import run_rpki_validity
+
+          result = run_rpki_validity(
+              'data/usg_ipv6.duckdb',
+              af=int(os.environ.get('AF', 6)),
+          )
+          print(json.dumps(result, indent=2))
+          PYEOF
+
+      - name: Upload updated DuckDB
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then exit 0; fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "RPKI validity enrichment" \
+               --prerelease

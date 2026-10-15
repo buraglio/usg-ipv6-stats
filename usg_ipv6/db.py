@@ -143,3 +143,54 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (observation_date, address)
         )
     """)
+    # ── Enrichment tables ─────────────────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS nist_deploymon (
+            measurement_date  DATE    NOT NULL,
+            domain            VARCHAR NOT NULL,
+            org               VARCHAR,
+            service           VARCHAR NOT NULL,
+            server_count      INTEGER NOT NULL DEFAULT 0,
+            v6_addr_count     INTEGER NOT NULL DEFAULT 0,
+            v6_reach_count    INTEGER NOT NULL DEFAULT 0,
+            v6_func_count     INTEGER NOT NULL DEFAULT 0,
+            status            VARCHAR,
+            dnssec_signed     BOOLEAN,
+            dnssec_valid      BOOLEAN,
+            dnssec_chained    BOOLEAN,
+            PRIMARY KEY (measurement_date, domain, service)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS domain_services (
+            observation_date  DATE    NOT NULL,
+            domain            VARCHAR NOT NULL,
+            record_type       VARCHAR NOT NULL,
+            hostname          VARCHAR NOT NULL,
+            ipv6_address      VARCHAR NOT NULL,
+            matched_prefix    VARCHAR,
+            matched_asn       BIGINT,
+            source            VARCHAR NOT NULL,
+            PRIMARY KEY (observation_date, domain, record_type, hostname, ipv6_address)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS rpki_validity (
+            check_date        DATE    NOT NULL,
+            prefix            VARCHAR NOT NULL,
+            origin_asn        BIGINT  NOT NULL,
+            status            VARCHAR NOT NULL,
+            roa_max_length    INTEGER,
+            PRIMARY KEY (check_date, prefix, origin_asn)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS bgp_communities (
+            snapshot_ts       TIMESTAMP NOT NULL,
+            collector         VARCHAR   NOT NULL,
+            prefix            VARCHAR   NOT NULL,
+            origin_asn        BIGINT    NOT NULL,
+            community         VARCHAR   NOT NULL,
+            PRIMARY KEY (snapshot_ts, collector, prefix, origin_asn, community)
+        )
+    """)

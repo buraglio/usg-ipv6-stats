@@ -1,0 +1,77 @@
+name: Enrichment — Certificate Transparency
+
+# Queries crt.sh for TLS certificates issued to *.gov subdomains over
+# the past year, resolves each SAN to AAAA, and checks which addresses
+# fall inside corpus-tracked IPv6 prefixes.  Results land in
+# domain_services with source='ct'.
+#
+# Run weekly — CT logs update continuously but weekly resolution is
+# sufficient for trend tracking and is polite toward crt.sh.
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'    # 03:23 UTC every Monday
+  workflow_dispatch:
+    inputs:
+      recent_days:
+        description: Only consider certs issued within this many days (default 365)
+        required: false
+        default: '365'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  cert-transparency:
+    name: Certificate Transparency enrichment
+    runs-on: ubuntu-latest
+    timeout-minutes: 120    # crt.sh queries can take a while for large .gov sets
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Run Certificate Transparency enrichment
+        env:
+          RECENT_DAYS: ${{ inputs.recent_days || '365' }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os
+          from usg_ipv6.pipeline.cert_transparency import run_cert_transparency
+
+          result = run_cert_transparency(
+              'data/usg_ipv6.duckdb',
+              recent_days=int(os.environ.get('RECENT_DAYS', 365)),
+          )
+          print(json.dumps(result, indent=2))
+          PYEOF
+
+      - name: Upload updated DuckDB
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then exit 0; fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Certificate Transparency enrichment" \
+               --prerelease

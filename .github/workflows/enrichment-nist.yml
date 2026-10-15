@@ -1,0 +1,65 @@
+name: Enrichment — NIST USGv6 Monitor
+
+# Scrapes https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov for
+# per-.gov-domain IPv6 deployment metrics (DNS / mail / web) and DNSSEC
+# status, then resolves the measured hosts to AAAA and maps them to
+# corpus-tracked prefixes.  Results land in nist_deploymon and
+# domain_services (source='nist').  Run daily after NIST publishes
+# their ~15:00 ET update.
+
+on:
+  schedule:
+    - cron: '17 20 * * *'   # 20:17 UTC ≈ 16:17 ET (after NIST daily update)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  nist-deploymon:
+    name: NIST USGv6 Deployment Monitor scrape
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Run NIST USGv6 scrape
+        run: |
+          uv run python << 'PYEOF'
+          import json
+          from usg_ipv6.pipeline.nist_deploymon import run_nist_deploymon
+
+          result = run_nist_deploymon('data/usg_ipv6.duckdb')
+          print(json.dumps(result, indent=2))
+          PYEOF
+
+      - name: Upload updated DuckDB
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then exit 0; fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "NIST USGv6 monitor enrichment" \
+               --prerelease
