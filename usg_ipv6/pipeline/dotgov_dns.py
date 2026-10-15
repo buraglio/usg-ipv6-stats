@@ -93,6 +93,21 @@ def _match_prefix(addr: str, nets: list[tuple]) -> tuple[str | None, int | None]
     return None, None
 
 
+# Public resolvers that reliably return DNSSEC record types.  The runner's
+# system resolver (Azure DNS, systemd-resolved stub, etc.) often silently
+# drops DS/DNSKEY queries or doesn't set the AD bit.
+_DNSSEC_NAMESERVERS = ["8.8.8.8", "1.1.1.1"]
+
+
+def _dnssec_resolver() -> dns.resolver.Resolver:
+    """Return a resolver configured for DNSSEC queries."""
+    r = dns.resolver.Resolver(configure=False)
+    r.nameservers = _DNSSEC_NAMESERVERS
+    r.use_edns(0, dns.flags.DO, 4096)
+    r.lifetime = DNS_TIMEOUT
+    return r
+
+
 def _check_dnssec(domain: str) -> dict:
     """
     Check DNSSEC status for a domain per RFC 4035.
@@ -100,7 +115,7 @@ def _check_dnssec(domain: str) -> dict:
     Returns dict with: has_ds, has_dnskey, ad_validated, algorithms.
     - has_ds:       DS record exists at the parent zone (delegation signed)
     - has_dnskey:   DNSKEY record exists at the zone apex
-    - ad_validated: Authenticated Data flag set — resolver has validated chain
+    - ad_validated: Authenticated Data flag set — resolver confirmed chain
     - algorithms:   comma-separated DNSKEY algorithm numbers (e.g. "13,8")
     """
     result: dict = {
@@ -109,33 +124,38 @@ def _check_dnssec(domain: str) -> dict:
         "ad_validated": False,
         "algorithms": None,
     }
+    resolver = _dnssec_resolver()
 
     # DS at parent — confirms delegation is signed
     try:
-        ans = dns.resolver.resolve(domain, "DS", lifetime=DNS_TIMEOUT)
+        ans = resolver.resolve(domain, "DS")
         result["has_ds"] = len(list(ans)) > 0
-    except Exception:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         pass
+    except Exception as exc:
+        log.debug("DNSSEC DS %s: %s", domain, exc)
 
     # DNSKEY at apex — zone is self-signed
     try:
-        ans = dns.resolver.resolve(domain, "DNSKEY", lifetime=DNS_TIMEOUT)
+        ans = resolver.resolve(domain, "DNSKEY")
         keys = list(ans)
         result["has_dnskey"] = len(keys) > 0
         if keys:
             algos = sorted({str(rr.algorithm) for rr in keys})
             result["algorithms"] = ",".join(algos)
-    except Exception:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         pass
+    except Exception as exc:
+        log.debug("DNSSEC DNSKEY %s: %s", domain, exc)
 
-    # AD (Authenticated Data) bit — full chain validation by the resolver
+    # AD bit — validating resolver confirmed the full chain
     try:
-        resolver = dns.resolver.Resolver()
-        resolver.use_edns(0, dns.flags.DO, 4096)
-        ans = resolver.resolve(domain, "SOA", lifetime=DNS_TIMEOUT)
+        ans = resolver.resolve(domain, "SOA")
         result["ad_validated"] = bool(ans.response.flags & dns.flags.AD)
-    except Exception:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         pass
+    except Exception as exc:
+        log.debug("DNSSEC SOA/AD %s: %s", domain, exc)
 
     return result
 
