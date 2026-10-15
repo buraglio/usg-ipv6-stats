@@ -131,15 +131,21 @@ def run_rpki_validity(
     conn = get_connection(db_path)
     init_schema(conn)
 
+    # Scope to prefixes visible in the most recent 48-hour window so stale
+    # historical entries from older snapshots don't inflate the "no ROA" count.
     af_filter = "" if af == 0 else f"AND pr.af = {af}"
+    af_window = "" if af == 0 else f"WHERE af = {af}"
     pairs = conn.execute(f"""
         SELECT DISTINCT pr.prefix, pr.origin_asn
         FROM prefix_records pr
         WHERE pr.origin_asn IN (SELECT asn FROM asn_corpus)
-        {af_filter}
+          AND pr.snapshot_ts >= (
+              SELECT MAX(snapshot_ts) FROM prefix_records {af_window}
+          ) - INTERVAL '48 hours'
+          {af_filter}
     """).fetchall()
 
-    log.info("RPKI: evaluating %d prefix/origin-AS pairs (af=%s)", len(pairs), af)
+    log.info("RPKI: evaluating %d current prefix/origin-AS pairs (af=%s)", len(pairs), af)
 
     roas = _download_vrps()
     if not roas:

@@ -1206,10 +1206,18 @@ def _enrichment_section(data: dict | None) -> str:
     rpki = data.get("rpki")
     if rpki:
         total_rpki = rpki["valid"] + rpki["invalid"] + rpki["not_found"]
-        valid_pct = f"{100 * rpki['valid'] / total_rpki:.0f}%" if total_rpki else "—"
-        stat_cards.append(_card("ok", "RPKI Valid Prefixes", valid_pct,
-                                f"{rpki['valid']:,} valid · {rpki['invalid']:,} invalid · "
-                                f"{rpki['not_found']:,} no ROA (as of {rpki['date']})"))
+        covered = rpki["valid"] + rpki["invalid"]
+        # Headline: % of current prefix/ASN pairs with ANY ROA coverage (valid or invalid).
+        # Pairs with no ROA get "not_found" — common for older USG prefixes predating RPKI.
+        cov_pct = f"{100 * covered / total_rpki:.1f}%" if total_rpki else "—"
+        # Of covered pairs: how many are actually valid?
+        valid_of_cov = (f"{100 * rpki['valid'] / covered:.0f}% valid"
+                        if covered else "none covered")
+        card_cls = "ok" if rpki["valid"] > rpki["invalid"] else "indet"
+        stat_cards.append(_card(card_cls, "RPKI ROA Coverage", cov_pct,
+                                f"{rpki['valid']:,} valid · {rpki['invalid']:,} invalid "
+                                f"({valid_of_cov} of covered) · "
+                                f"{rpki['not_found']:,} no ROA · as of {rpki['date']}"))
 
     dom = data.get("domain")
     if dom:
