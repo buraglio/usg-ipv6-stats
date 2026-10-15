@@ -1,85 +1,116 @@
 """
 RPKI validity enrichment pipeline
 ====================================
-For every IPv6 prefix currently in prefix_records, queries the Cloudflare
-RPKI validity API to determine whether the origin AS is covered by a valid
-Route Origin Authorization (ROA).
+Downloads the Cloudflare RPKI VRP dump (rpki.cloudflare.com/rpki.json)
+once and evaluates every corpus prefix/origin-AS pair locally.
 
-Signal value:
-- VALID   → an explicit ROA authorizes this AS to announce this prefix.
-            Strong signal of intentional, maintained operation.
-- INVALID → a ROA exists but covers a different origin AS or max-length.
-            Could indicate a route leak, hijack, or stale announcement.
-- NOT_FOUND → no ROA covers this prefix at all. Common for older USG
-              prefixes that have not yet deployed RPKI.
+No per-prefix API calls, no rate-limit delays.  Typical runtime: <2 min
+(~30 s download + index build + in-memory lookup for all pairs).
 
-API: https://rpki.cloudflare.com/api/v1/validity/{asn}/{prefix}
-No auth required.  Rate-limit politely (~5 req/s).
-
-Fallback: if Cloudflare is unreachable, the pipeline attempts the RIPE
-Stat RPKI validity API (data.stat.ripe.net).
+Signal meanings:
+- valid      → an explicit ROA authorizes this AS for this prefix/length.
+- invalid    → a ROA covers this prefix but for a different AS or max-length.
+- not_found  → no ROA covers this prefix at all (common for older USG prefixes).
 """
 
 import ipaddress
 import logging
-import time
 from datetime import date as date_cls
 
 import requests
 
 log = logging.getLogger(__name__)
 
-CF_RPKI_URL = "https://rpki.cloudflare.com/api/v1/validity/{asn}/{prefix}"
-RIPE_RPKI_URL = (
-    "https://stat.ripe.net/data/rpki-validation/data.json?resource={asn}&prefix={prefix}"
-)
-REQUEST_DELAY = 0.2   # ~5 req/s
-MAX_RETRIES = 2
+CF_VRP_URL = "https://rpki.cloudflare.com/rpki.json"
+# Fallback: OpenBSD rpki-client public export (same schema)
+FALLBACK_VRP_URL = "https://console.rpki-client.org/vrps.json"
 
 
-def _check_cloudflare(asn: int, prefix: str) -> dict | None:
-    url = CF_RPKI_URL.format(asn=asn, prefix=prefix)
-    for attempt in range(MAX_RETRIES):
+def _download_vrps() -> list[dict]:
+    """Download the full VRP list from Cloudflare; fall back to rpki-client."""
+    for url in (CF_VRP_URL, FALLBACK_VRP_URL):
         try:
-            r = requests.get(url, timeout=10)
+            log.info("RPKI: downloading VRP dump from %s", url)
+            r = requests.get(url, timeout=120)
             r.raise_for_status()
             data = r.json()
-            vr = data.get("validity", {})
-            return {
-                "status": vr.get("state", "not-found").lower().replace(" ", "-"),
-                "roa_max_length": (
-                    vr.get("VRPs", {}).get("matched", [{}])[0].get("max_length")
-                    if vr.get("VRPs", {}).get("matched") else None
-                ),
-            }
+            roas = data.get("roas", [])
+            if roas:
+                log.info("RPKI: got %d VRPs", len(roas))
+                return roas
         except Exception as exc:
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(1)
-            else:
-                log.debug("Cloudflare RPKI failed for %s %s: %s", asn, prefix, exc)
-    return None
+            log.warning("RPKI: download failed from %s: %s", url, exc)
+    return []
 
 
-def _check_ripe(asn: int, prefix: str) -> dict | None:
-    url = RIPE_RPKI_URL.format(asn=asn, prefix=prefix)
+def _build_index(roas: list[dict]) -> tuple[dict, dict]:
+    """
+    Build fast-lookup dicts for supernet matching.
+
+    Index key:  (masked_network_address_int, prefix_len)
+    Index value: list of (origin_asn, max_length)
+
+    For a corpus prefix C/clen, the covering VRPs are found by iterating
+    vlen = 0..clen, masking C's address to vlen bits, and looking up
+    (masked, vlen) in the index.  O(prefix_len) dict lookups per pair.
+    """
+    v4: dict = {}
+    v6: dict = {}
+
+    for roa in roas:
+        try:
+            net = ipaddress.ip_network(roa["prefix"], strict=False)
+            asn = int(str(roa["asn"]).lstrip("ASas"))
+            max_len = int(roa["maxLength"])
+        except Exception:
+            continue
+
+        plen = net.prefixlen
+        p_int = int(net.network_address)
+        bucket = v4 if isinstance(net, ipaddress.IPv4Network) else v6
+        bucket.setdefault((p_int, plen), []).append((asn, max_len))
+
+    return v4, v6
+
+
+def _classify(prefix: str, asn: int, v4_idx: dict, v6_idx: dict) -> tuple[str, int | None]:
+    """
+    Return (status, roa_max_length) for a prefix/origin-AS pair per RFC 6811.
+    No network calls.
+
+    - valid:     a VRP authorizes this ASN for this prefix/length.
+    - invalid:   a VRP covers this address space but not this ASN/length.
+    - not_found: no VRP covers this address space at all.
+    """
     try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        status = data.get("data", {}).get("status", "not-found").lower()
-        return {"status": status, "roa_max_length": None}
-    except Exception as exc:
-        log.debug("RIPE RPKI failed for %s %s: %s", asn, prefix, exc)
-        return None
+        net = ipaddress.ip_network(prefix, strict=False)
+    except ValueError:
+        return "not_found", None
 
+    bits = 128 if isinstance(net, ipaddress.IPv6Network) else 32
+    idx = v6_idx if bits == 128 else v4_idx
+    c_int = int(net.network_address)
+    c_len = net.prefixlen
 
-def _check_validity(asn: int, prefix: str) -> dict:
-    result = _check_cloudflare(asn, prefix)
-    if result is None:
-        result = _check_ripe(asn, prefix)
-    if result is None:
-        result = {"status": "error", "roa_max_length": None}
-    return result
+    # covering_any: VRPs whose prefix covers our address space (maxLength may fail)
+    # covering_ok:  VRPs that fully authorize this announcement
+    covering_any: list[tuple[int, int]] = []
+    covering_ok: list[tuple[int, int]] = []
+
+    for vlen in range(c_len + 1):
+        mask = ((1 << bits) - 1) ^ ((1 << (bits - vlen)) - 1)
+        masked = c_int & mask
+        for vasn, max_len in idx.get((masked, vlen), []):
+            covering_any.append((vasn, max_len))
+            if c_len <= max_len:
+                covering_ok.append((vasn, max_len))
+
+    if not covering_any:
+        return "not_found", None
+    valid = [(vasn, ml) for vasn, ml in covering_ok if vasn == asn]
+    if valid:
+        return "valid", valid[0][1]
+    return "invalid", None
 
 
 def run_rpki_validity(
@@ -88,10 +119,10 @@ def run_rpki_validity(
     af: int = 6,
 ) -> dict:
     """
-    Check RPKI validity for all corpus-announced prefixes.
+    Classify RPKI validity for all corpus-announced prefixes.
 
-    af=6 (default) checks only IPv6; set af=4 for IPv4 or af=0 for both.
-    Returns a summary dict with totals by status.
+    Downloads the Cloudflare VRP dump once and evaluates pairs locally.
+    af=6 (default) checks IPv6 only; af=4 for IPv4; af=0 for both.
     """
     from usg_ipv6.db import get_connection, init_schema
 
@@ -108,18 +139,25 @@ def run_rpki_validity(
         {af_filter}
     """).fetchall()
 
-    log.info("RPKI: checking %d prefix/origin-AS pairs", len(pairs))
+    log.info("RPKI: evaluating %d prefix/origin-AS pairs (af=%s)", len(pairs), af)
+
+    roas = _download_vrps()
+    if not roas:
+        conn.close()
+        return {"pairs_checked": 0, "by_status": {}, "error": "VRP download failed"}
+
+    v4_idx, v6_idx = _build_index(roas)
+    log.info("RPKI: index built — %d v4 entries, %d v6 entries", len(v4_idx), len(v6_idx))
+
     conn.execute("DELETE FROM rpki_validity WHERE check_date = ?", [cdate])
 
     rows = []
     counts: dict[str, int] = {}
 
     for prefix, asn in pairs:
-        result = _check_validity(int(asn), prefix)
-        status = result["status"]
-        rows.append((cdate, prefix, int(asn), status, result["roa_max_length"]))
+        status, roa_max_len = _classify(prefix, int(asn), v4_idx, v6_idx)
+        rows.append((cdate, prefix, int(asn), status, roa_max_len))
         counts[status] = counts.get(status, 0) + 1
-        time.sleep(REQUEST_DELAY)
 
     if rows:
         conn.executemany(
