@@ -396,6 +396,31 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                     "web_func": row[4] or 0, "dnssec_chained": row[5] or 0,
                 }
 
+        if "dnssec_status" in tables:
+            row = conn.execute("""
+                SELECT check_date::VARCHAR,
+                       COUNT(*)                            AS total,
+                       COUNT(*) FILTER (WHERE has_dnskey)  AS signed,
+                       COUNT(*) FILTER (WHERE has_ds)      AS delegated,
+                       COUNT(*) FILTER (WHERE ad_validated) AS validated
+                FROM dnssec_status
+                WHERE check_date = (SELECT MAX(check_date) FROM dnssec_status)
+                GROUP BY check_date
+            """).fetchone()
+            if row:
+                enrich["dnssec"] = {
+                    "date": row[0], "total": row[1],
+                    "signed": row[2], "delegated": row[3], "validated": row[4],
+                }
+            algo_rows = conn.execute("""
+                SELECT algorithms, COUNT(*) AS cnt
+                FROM dnssec_status
+                WHERE check_date = (SELECT MAX(check_date) FROM dnssec_status)
+                  AND algorithms IS NOT NULL
+                GROUP BY algorithms ORDER BY cnt DESC LIMIT 5
+            """).fetchall()
+            enrich["dnssec_algos"] = [(r[0], r[1]) for r in algo_rows]
+
         if "bgp_communities" in tables:
             row = conn.execute("""
                 SELECT snapshot_ts::VARCHAR,
@@ -957,6 +982,23 @@ let hitlistChart = null;
   }});
 }})();
 
+// ── ASN row IPv4/IPv6 presence pills ─────────────────────────────────────────
+(function() {{
+  document.querySelectorAll('#corpus-table .asn-row').forEach(row => {{
+    const asn = row.dataset.asn;
+    const pfx = DATA.asn_prefixes[asn] || {{v4: [], v6: []}};
+    const cell = row.querySelector('td');
+    if (pfx.v6.length) {{
+      cell.insertAdjacentHTML('beforeend',
+        `<span class="af-pill v6-pill" title="${{pfx.v6.length}} IPv6 prefix${{pfx.v6.length !== 1 ? 'es' : ''}} announced">✓ v6</span>`);
+    }}
+    if (pfx.v4.length) {{
+      cell.insertAdjacentHTML('beforeend',
+        `<span class="af-pill v4-pill" title="${{pfx.v4.length}} IPv4 prefix${{pfx.v4.length !== 1 ? 'es' : ''}} announced">● v4</span>`);
+    }}
+  }});
+}})();
+
 // ── ASN explorer ──────────────────────────────────────────────────────────────
 function filterASNs(q) {{
   const rows = document.querySelectorAll('#corpus-table .asn-row');
@@ -1183,6 +1225,16 @@ def _enrichment_section(data: dict | None) -> str:
                                 f"web {nist['web_func']} · DNSSEC chained {nist['dnssec_chained']} "
                                 f"({nist['date']})"))
 
+    dnssec = data.get("dnssec")
+    if dnssec:
+        val_pct = (f"{100 * dnssec['validated'] / dnssec['total']:.0f}%"
+                   if dnssec["total"] else "—")
+        stat_cards.append(_card("ok", ".gov DNSSEC Validated", val_pct,
+                                f"{dnssec['validated']:,} AD-validated · "
+                                f"{dnssec['signed']:,} signed · "
+                                f"{dnssec['delegated']:,} DS delegated "
+                                f"of {dnssec['total']:,} domains ({dnssec['date']})"))
+
     comm = data.get("communities")
     if comm:
         bh_label = (f"{comm['blackhole']:,} blackhole-tagged" if comm["blackhole"]
@@ -1206,6 +1258,60 @@ def _enrichment_section(data: dict | None) -> str:
         src_tbl = ""
 
     stat_grid = f'<div class="stat-grid">{"".join(stat_cards)}</div>' if stat_cards else ""
+
+    # DNSSEC detail block
+    dnssec_detail = ""
+    if dnssec := data.get("dnssec"):
+        total = dnssec["total"] or 1
+        def _dpct(n): return f"{100 * n / total:.1f}%"
+        stages = [
+            ("Zone signed (DNSKEY)", dnssec["signed"]),
+            ("Delegation signed (DS at parent)", dnssec["delegated"]),
+            ("Full chain validated (AD bit)", dnssec["validated"]),
+        ]
+        stage_rows = "".join(
+            f"<tr><td>{label}</td>"
+            f"<td class='num'>{n:,}</td>"
+            f"<td class='num'>{_dpct(n)}</td>"
+            f"<td style='padding-left:0.5rem;min-width:120px'>"
+            f"<div style='background:var(--border);border-radius:4px;height:10px;overflow:hidden'>"
+            f"<div style='background:#1a7f37;width:{_dpct(n)};height:100%'></div></div></td></tr>"
+            for label, n in stages
+        )
+        algo_rows_html = ""
+        for alg_str, cnt in data.get("dnssec_algos", []):
+            # RFC 8624 algorithm names
+            names = {
+                "1": "RSA/MD5", "5": "RSA/SHA-1", "7": "RSASHA1-NSEC3",
+                "8": "RSA/SHA-256", "10": "RSA/SHA-512",
+                "12": "GOST R 34.10-2001", "13": "ECDSA/P-256/SHA-256",
+                "14": "ECDSA/P-384/SHA-384", "15": "Ed25519", "16": "Ed448",
+            }
+            labels = ", ".join(
+                names.get(a.strip(), f"Alg {a.strip()}") for a in alg_str.split(",")
+            )
+            algo_rows_html += (
+                f"<tr><td><code>{_esc(alg_str)}</code></td>"
+                f"<td style='padding-left:0.5rem;font-size:0.82rem;color:var(--muted)'>{labels}</td>"
+                f"<td class='num'>{cnt:,}</td></tr>"
+            )
+        algo_section = (
+            f"<h4 style='font-size:0.875rem;font-weight:600;margin:1rem 0 0.4rem'>"
+            f"DNSKEY Algorithm Distribution</h4>"
+            f"{_table(['Algorithm(s)', 'Name(s)', 'Domains'], algo_rows_html)}"
+            if algo_rows_html else ""
+        )
+        dnssec_detail = (
+            f"<h3 style='margin:1.5rem 0 0.5rem;font-size:1rem;font-weight:600'>"
+            f".gov DNSSEC Coverage ({dnssec['date']})</h3>"
+            f"<p style='font-size:0.83rem;color:var(--muted);margin-bottom:0.75rem'>"
+            f"DNSSEC validation chain: zone must be signed (DNSKEY), delegation must be "
+            f"recorded at the parent (DS record), and a validating resolver must confirm "
+            f"the full chain (AD flag). Each stage requires the previous.</p>"
+            f"<div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>"
+            f"{_table(['Stage', 'Domains', 'Coverage', ''], stage_rows)}"
+            f"{algo_section}</div>"
+        )
 
     corpus_match_note = (
         "<p style='font-size:0.82rem;color:var(--muted);margin:0.5rem 0 0'>"
@@ -1232,6 +1338,7 @@ def _enrichment_section(data: dict | None) -> str:
   </p>
   {stat_grid}
   {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>" + src_tbl + "</div>" + corpus_match_note if src_tbl else ""}
+  {dnssec_detail}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
     {placeholder_cards}
   </div>
@@ -1639,6 +1746,15 @@ tr.tier-inactive td { color: var(--muted); }
 .hchip.rpki-valid    { background: #dafbe1; color: #116329; border-color: #56d364; }
 .hchip.rpki-invalid  { background: #ffebe9; color: #cf222e; border-color: #ff8182; }
 .hchip.rpki-nf       { background: var(--even-row); color: var(--muted); border-color: var(--border); }
+
+.af-pill {
+  display: inline-block; font-size: 0.65rem; font-weight: 700;
+  padding: 0.1rem 0.4rem; border-radius: 8px;
+  margin-left: 0.35rem; vertical-align: middle; line-height: 1.5;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.v6-pill { background: #dafbe1; color: #116329; border-color: #56d364; }
+.v4-pill { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
 
 .data-notice {
   background: #fffbea; border-bottom: 1px solid #d4a72c;

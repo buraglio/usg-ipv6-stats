@@ -19,6 +19,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_cls
 
+import dns.flags
 import dns.resolver
 import requests
 
@@ -91,6 +92,53 @@ def _match_prefix(addr: str, nets: list[tuple]) -> tuple[str | None, int | None]
     return None, None
 
 
+def _check_dnssec(domain: str) -> dict:
+    """
+    Check DNSSEC status for a domain per RFC 4035.
+
+    Returns dict with: has_ds, has_dnskey, ad_validated, algorithms.
+    - has_ds:       DS record exists at the parent zone (delegation signed)
+    - has_dnskey:   DNSKEY record exists at the zone apex
+    - ad_validated: Authenticated Data flag set — resolver has validated chain
+    - algorithms:   comma-separated DNSKEY algorithm numbers (e.g. "13,8")
+    """
+    result: dict = {
+        "has_ds": False,
+        "has_dnskey": False,
+        "ad_validated": False,
+        "algorithms": None,
+    }
+
+    # DS at parent — confirms delegation is signed
+    try:
+        ans = dns.resolver.resolve(domain, "DS", lifetime=DNS_TIMEOUT)
+        result["has_ds"] = len(list(ans)) > 0
+    except Exception:
+        pass
+
+    # DNSKEY at apex — zone is self-signed
+    try:
+        ans = dns.resolver.resolve(domain, "DNSKEY", lifetime=DNS_TIMEOUT)
+        keys = list(ans)
+        result["has_dnskey"] = len(keys) > 0
+        if keys:
+            algos = sorted({str(rr.algorithm) for rr in keys})
+            result["algorithms"] = ",".join(algos)
+    except Exception:
+        pass
+
+    # AD (Authenticated Data) bit — full chain validation by the resolver
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.use_edns(0, dns.flags.DO, 4096)
+        ans = resolver.resolve(domain, "SOA", lifetime=DNS_TIMEOUT)
+        result["ad_validated"] = bool(ans.response.flags & dns.flags.AD)
+    except Exception:
+        pass
+
+    return result
+
+
 def _process_domain(domain: str, nets: list[tuple], obs_date: date_cls) -> list[tuple]:
     rows = []
 
@@ -142,15 +190,26 @@ def run_dotgov_dns(db_path: str, observation_date: date_cls | None = None) -> di
     log.info("Checking %d .gov domains against %d corpus prefixes", len(domains), len(nets))
 
     all_rows: list[tuple] = []
+    dnssec_results: dict[str, dict] = {}
+
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-        futures = {
+        svc_futures = {
             pool.submit(_process_domain, d, nets, obs_date): d for d in domains
         }
-        for future in as_completed(futures):
+        dnssec_futures = {
+            pool.submit(_check_dnssec, d): d for d in domains
+        }
+        for future in as_completed(svc_futures):
             try:
                 all_rows.extend(future.result())
             except Exception as exc:
-                log.warning("Domain %s failed: %s", futures[future], exc)
+                log.warning("Domain %s svc failed: %s", svc_futures[future], exc)
+        for future in as_completed(dnssec_futures):
+            domain = dnssec_futures[future]
+            try:
+                dnssec_results[domain] = future.result()
+            except Exception as exc:
+                log.warning("Domain %s dnssec failed: %s", domain, exc)
 
     matches = sum(1 for r in all_rows if r[5] is not None)
 
@@ -164,9 +223,39 @@ def run_dotgov_dns(db_path: str, observation_date: date_cls | None = None) -> di
             all_rows,
         )
 
+    conn.execute(
+        "DELETE FROM dnssec_status WHERE check_date = ?",
+        [obs_date],
+    )
+    dnssec_rows = [
+        (
+            obs_date,
+            domain,
+            info.get("has_ds"),
+            info.get("has_dnskey"),
+            info.get("ad_validated"),
+            info.get("algorithms"),
+        )
+        for domain, info in dnssec_results.items()
+    ]
+    if dnssec_rows:
+        conn.executemany(
+            "INSERT OR REPLACE INTO dnssec_status VALUES (?, ?, ?, ?, ?, ?)",
+            dnssec_rows,
+        )
+
+    signed = sum(1 for r in dnssec_rows if r[3])   # has_dnskey
+    validated = sum(1 for r in dnssec_rows if r[4]) # ad_validated
+
     conn.close()
     log.info(
-        "dotgov DNS: %d domains, %d rows, %d corpus matches",
-        len(domains), len(all_rows), matches,
+        "dotgov DNS: %d domains, %d svc rows, %d corpus matches; DNSSEC: %d signed, %d AD-validated",
+        len(domains), len(all_rows), matches, signed, validated,
     )
-    return {"domains_checked": len(domains), "rows_inserted": len(all_rows), "matches": matches}
+    return {
+        "domains_checked": len(domains),
+        "rows_inserted": len(all_rows),
+        "matches": matches,
+        "dnssec_signed": signed,
+        "dnssec_ad_validated": validated,
+    }

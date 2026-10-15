@@ -194,3 +194,14 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (snapshot_ts, collector, prefix, origin_asn, community)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS dnssec_status (
+            check_date        DATE    NOT NULL,
+            domain            VARCHAR NOT NULL,
+            has_ds            BOOLEAN,
+            has_dnskey        BOOLEAN,
+            ad_validated      BOOLEAN,
+            algorithms        VARCHAR,
+            PRIMARY KEY (check_date, domain)
+        )
+    """)
