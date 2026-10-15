@@ -69,10 +69,12 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     for date, af, prefixes, asns in series_rows:
         _dates_set.setdefault(date, {})[af] = {"p": prefixes, "a": asns}
     chart_dates = sorted(_dates_set)
-    chart_v6_prefixes = [_dates_set[d].get(6, {}).get("p", 0) for d in chart_dates]
-    chart_v4_prefixes = [_dates_set[d].get(4, {}).get("p", 0) for d in chart_dates]
-    chart_v6_asns = [_dates_set[d].get(6, {}).get("a", 0) for d in chart_dates]
-    chart_v4_asns = [_dates_set[d].get(4, {}).get("a", 0) for d in chart_dates]
+    # Use None (→ JSON null) when an AF has no data for a given date so Chart.js
+    # spanGaps can skip the missing point rather than drawing a line to zero.
+    chart_v6_prefixes = [_dates_set[d].get(6, {}).get("p") for d in chart_dates]
+    chart_v4_prefixes = [_dates_set[d].get(4, {}).get("p") for d in chart_dates]
+    chart_v6_asns = [_dates_set[d].get(6, {}).get("a") for d in chart_dates]
+    chart_v4_asns = [_dates_set[d].get(4, {}).get("a") for d in chart_dates]
 
     # ── Latest-snapshot summary ───────────────────────────────────────────────
     # IPv4 (route-views2) and IPv6 (route-views6) ingest on separate schedules,
@@ -881,14 +883,14 @@ let hitlistChart = null;
           data: DATA.v6_prefixes,
           borderColor: '#0969da',
           backgroundColor: 'rgba(9,105,218,0.08)',
-          tension: 0.3, fill: true, pointRadius: 4,
+          tension: 0.3, fill: true, pointRadius: 4, spanGaps: true,
         }},
         {{
           label: 'IPv4 Prefixes',
           data: DATA.v4_prefixes,
           borderColor: '#1a7f37',
           backgroundColor: 'rgba(26,127,55,0.06)',
-          tension: 0.3, fill: true, pointRadius: 4,
+          tension: 0.3, fill: true, pointRadius: 4, spanGaps: true,
         }},
         {{
           label: 'IPv6 ASNs',
@@ -896,7 +898,7 @@ let hitlistChart = null;
           borderColor: '#8250df',
           borderDash: [5,3],
           backgroundColor: 'transparent',
-          tension: 0.3, fill: false, pointRadius: 3,
+          tension: 0.3, fill: false, pointRadius: 3, spanGaps: true,
         }},
       ],
     }},
