@@ -323,6 +323,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
 
     # ── Enrichment data ───────────────────────────────────────────────────────
     enrichment_data: dict | None = None
+    rpki_by_asn: dict = {}
     try:
         tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
         enrich: dict = {}
@@ -341,6 +342,16 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                 enrich["rpki"] = {
                     "date": row[0], "valid": row[1], "invalid": row[2], "not_found": row[3],
                 }
+            for r in conn.execute("""
+                SELECT origin_asn,
+                       COUNT(*) FILTER (WHERE status = 'valid')     AS v,
+                       COUNT(*) FILTER (WHERE status = 'invalid')   AS i,
+                       COUNT(*) FILTER (WHERE status = 'not_found') AS nf
+                FROM rpki_validity
+                WHERE check_date = (SELECT MAX(check_date) FROM rpki_validity)
+                GROUP BY origin_asn
+            """).fetchall():
+                rpki_by_asn[str(r[0])] = {"v": r[1], "i": r[2], "nf": r[3]}
 
         if "domain_services" in tables:
             row = conn.execute("""
@@ -420,6 +431,7 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
         "hitlist_asns": hitlist_asn_map,
         "hitlist_dates": [r[0] for r in hitlist_data["trend_rows"]] if hitlist_data else [],
         "hitlist_responsive": [r[1] for r in hitlist_data["trend_rows"]] if hitlist_data else [],
+        "rpki_by_asn": rpki_by_asn,
     }, separators=(",", ":"))
 
     html_out = _page(
@@ -701,6 +713,14 @@ def _page(
           <span class="hchip responsive">Responsive: <strong id="detail-hl-responsive">—</strong></span>
           <span class="hchip aliased">Aliased: <strong id="detail-hl-aliased">—</strong></span>
           <span class="hchip real">Likely real: <strong id="detail-hl-real">—</strong></span>
+        </div>
+      </div>
+      <div id="detail-rpki" class="detail-hitlist" style="display:none">
+        <h4>RPKI Validity (latest check)</h4>
+        <div class="hitlist-chips">
+          <span class="hchip rpki-valid">Valid ROA: <strong id="detail-rpki-valid">—</strong></span>
+          <span class="hchip rpki-invalid">Invalid: <strong id="detail-rpki-invalid">—</strong></span>
+          <span class="hchip rpki-nf">No ROA: <strong id="detail-rpki-nf">—</strong></span>
         </div>
       </div>
       <div class="asn-chart-wrap">
@@ -996,9 +1016,25 @@ function showASN(asn) {{
     hlBox.style.display = 'none';
   }}
 
-  // Show detail panel before chart creation so prefix lists are visible
+  // Show detail panel. It is position:sticky so it clings to the top of the
+  // viewport as the user scrolls — scroll the clicked row into view instead of
+  // jumping to the top of the section.
   detail.style.display = 'block';
-  detail.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+  requestAnimationFrame(() => {{
+    if (row) row.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+  }});
+
+  // RPKI validity
+  const rpkiBox = document.getElementById('detail-rpki');
+  const rpki = DATA.rpki_by_asn && DATA.rpki_by_asn[key];
+  if (rpki !== undefined) {{
+    document.getElementById('detail-rpki-valid').textContent   = rpki.v.toLocaleString();
+    document.getElementById('detail-rpki-invalid').textContent = rpki.i.toLocaleString();
+    document.getElementById('detail-rpki-nf').textContent      = rpki.nf.toLocaleString();
+    rpkiBox.style.display = '';
+  }} else {{
+    rpkiBox.style.display = 'none';
+  }}
 
   // History chart
   const hist = DATA.asn_history[key] || {{}};
@@ -1568,6 +1604,7 @@ tr.tier-inactive td { color: var(--muted); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; margin-bottom: 1rem; overflow: hidden;
   box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  position: sticky; top: 3.5rem; z-index: 50;
 }
 .asn-detail-header {
   background: var(--th-bg); color: var(--th-text);
@@ -1596,9 +1633,12 @@ tr.tier-inactive td { color: var(--muted); }
   padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.82rem;
   border: 1px solid var(--border);
 }
-.hchip.responsive { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
-.hchip.aliased    { background: #fff8c5; color: #9a6700; border-color: #e3b341; }
-.hchip.real       { background: #dafbe1; color: #116329; border-color: #56d364; }
+.hchip.responsive    { background: #ddf4ff; color: #0550ae; border-color: #b6e3ff; }
+.hchip.aliased       { background: #fff8c5; color: #9a6700; border-color: #e3b341; }
+.hchip.real          { background: #dafbe1; color: #116329; border-color: #56d364; }
+.hchip.rpki-valid    { background: #dafbe1; color: #116329; border-color: #56d364; }
+.hchip.rpki-invalid  { background: #ffebe9; color: #cf222e; border-color: #ff8182; }
+.hchip.rpki-nf       { background: var(--even-row); color: var(--muted); border-color: var(--border); }
 
 .data-notice {
   background: #fffbea; border-bottom: 1px solid #d4a72c;
