@@ -51,22 +51,32 @@ def _parse_page(html: str) -> list[dict]:
     Each record has: domain, org, dns/mail/web dicts, dnssec dict.
     """
     records = []
-    # Find all table rows that contain a domain link
+    # Find all table rows — NIST HTML uses uppercase <TR>/<TD> so re.I is required
     for row_m in re.finditer(
-        r'<tr[^>]*>(.*?)</tr>', html, re.S
+        r'<tr[^>]*>(.*?)</tr>', html, re.S | re.I
     ):
         row_html = row_m.group(1)
 
-        # Extract domain from first anchor
-        domain_m = re.search(r'<a[^>]*href=["\'][^"\']*["\']>([^<]+)</a>', row_html)
-        if not domain_m:
-            continue
-        domain = domain_m.group(1).strip().lower().rstrip(".")
+        # Extract domain from the absolute-URL anchor (e.g. href="https://www.18f.gov").
+        # NIST writes anchor text in reversed format (gov.18f.) so we use the href instead.
+        domain_m = re.search(
+            r'href=["\']https?://(?:www\.)?([a-zA-Z0-9][a-zA-Z0-9.\-]+\.gov)[/"\'> ]',
+            row_html, re.I,
+        )
+        if domain_m:
+            domain = domain_m.group(1).strip().lower()
+        else:
+            # Fallback: some rows use <i> with no anchor; text is reversed (gov.250.)
+            italic_m = re.search(r'<i>(gov\.[a-z0-9.\-]+\.?)</i>', row_html, re.I)
+            if not italic_m:
+                continue
+            parts = [p for p in italic_m.group(1).strip().lower().split(".") if p]
+            domain = ".".join(reversed(parts))
         if not domain.endswith(".gov"):
             continue
 
-        # Extract org from second td
-        tds = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.S)
+        # Extract org from second td (HTML has uppercase <TD> — re.I required)
+        tds = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.S | re.I)
         org = re.sub(r'<[^>]+>', '', tds[1]).strip() if len(tds) > 1 else ""
 
         # Extract up to 3 metric blocks (DNS, Mail, Web in order)
