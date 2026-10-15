@@ -1171,6 +1171,18 @@ def _enrichment_section(data: dict | None) -> str:
 
     stat_grid = f'<div class="stat-grid">{"".join(stat_cards)}</div>' if stat_cards else ""
 
+    corpus_match_note = (
+        "<p style='font-size:0.82rem;color:var(--muted);margin:0.5rem 0 0'>"
+        "<strong>Why corpus matches may be zero or low:</strong> "
+        "Federal .gov domains widely use commercial cloud providers — AWS Route&nbsp;53, "
+        "Akamai, Cloudflare, and others — for DNS, mail, and web infrastructure. "
+        "Those providers' IPv6 address space is outside the government-operated BGP corpus "
+        "by design. Zero corpus matches for NIST or DNS-enumeration service records is "
+        "expected and does <em>not</em> indicate missing data; it reflects the industry-wide "
+        "shift to cloud-hosted service delivery."
+        "</p>"
+    )
+
     return f"""
 <section id="enrichment">
   <h2>Active-Prefix Enrichment</h2>
@@ -1183,7 +1195,7 @@ def _enrichment_section(data: dict | None) -> str:
     hosts that firewalls hide from ICMP probes.
   </p>
   {stat_grid}
-  {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:1rem'>" + src_tbl + "</div>" if src_tbl else ""}
+  {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>" + src_tbl + "</div>" + corpus_match_note if src_tbl else ""}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
     {placeholder_cards}
   </div>
