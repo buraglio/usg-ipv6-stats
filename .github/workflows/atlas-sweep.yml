@@ -1,0 +1,233 @@
+name: RIPE Atlas Prefix Sweep
+
+# Probes USG IPv6 corpus prefixes using RIPE Atlas measurements to discover
+# live addresses that evade ICMP-based probing (hitlist, Ark) due to firewall
+# policy.  For each corpus prefix, generates candidate target addresses and
+# runs ICMPv6 ping, TCP connect (443/80/53), and traceroute measurements from
+# US-based Atlas probes.  Traceroute hop addresses are extracted separately —
+# routers within corpus prefixes respond to traceroute even when end-hosts
+# are firewalled.
+#
+# Requires: RIPE_ATLAS_API_KEY secret with "Create User Defined Measurements"
+# scope.  DuckDB lives in the rolling 'data-latest' GitHub Release.
+#
+# Credit budget (default: 20 probes, all 5 types, ~530 prefixes, 10 targets):
+#   530 × 10 × 20 × (1+10+10+10+10) = ~4.35M credits per run.
+# Adjust probe_count or measurement_labels inputs to reduce cost.
+
+on:
+  schedule:
+    - cron: '0 10 * * 6'    # Saturday 10:00 UTC (after Friday hitlist run)
+  workflow_dispatch:
+    inputs:
+      probe_count:
+        description: Number of Atlas probes per measurement (default 20).
+        required: false
+        default: '20'
+        type: string
+      country_code:
+        description: ISO 3166-1 probe country (default US).
+        required: false
+        default: 'US'
+        type: string
+      measurement_labels:
+        description: |
+          Comma-separated subset of measurement types to run.
+          Valid values: ping, tcp_443, tcp_80, tcp_53, traceroute
+          Leave blank to run all five types.
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: |
+          If true, generate targets and estimate credits without creating
+          any Atlas measurements (no credits consumed).
+        required: false
+        default: 'false'
+        type: string
+      observation_date:
+        description: Override observation date (YYYY-MM-DD). Leave blank for today.
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  atlas-sweep:
+    name: RIPE Atlas corpus IPv6 prefix sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 360    # traceroute measurements take ~10 min each to complete
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/ || true
+
+      - name: Verify CAIDA pfx2as IPv6 data is present
+        run: |
+          uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
+          from datetime import date
+          import sys
+
+          today = date.today()
+          month_start = today.replace(day=1).isoformat()
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+
+          existing = conn.execute(
+              "SELECT COUNT(*) FROM caida_pfx2as WHERE af = 6 AND snapshot_date >= ?",
+              [month_start],
+          ).fetchone()[0]
+
+          if existing > 0:
+              print(f"CAIDA pfx2as IPv6 present ({existing:,} rows) — OK")
+              conn.close()
+              sys.exit(0)
+
+          print("CAIDA pfx2as IPv6 not loaded for current month; fetching...",
+                file=sys.stderr)
+          downloaded = None
+          for days_back in range(8):
+              from datetime import timedelta
+              attempt = date.fromordinal(today.toordinal() - days_back)
+              try:
+                  downloaded = download_pfx2as('data/raw', attempt.isoformat(), 'rv6')
+                  print(f"Downloaded CAIDA pfx2as rv6 for {attempt.isoformat()}")
+                  break
+              except Exception as e:
+                  print(f"  {attempt.isoformat()} rv6: {e}", file=sys.stderr)
+
+          if downloaded is None:
+              print("ERROR: Could not download rv6 pfx2as — cannot identify corpus prefixes.",
+                    file=sys.stderr)
+              conn.close()
+              sys.exit(1)
+
+          n = load_pfx2as(downloaded, today.isoformat(), conn)
+          print(f"Loaded {n:,} IPv6 pfx2as records (snapshot_date={today.isoformat()})")
+          conn.close()
+          PYEOF
+
+      - name: Estimate Atlas credit cost (dry run preview)
+        env:
+          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '20' }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels }}
+        run: |
+          uv run python << 'PYEOF'
+          import os
+          from usg_ipv6.db import get_connection, init_schema
+          from usg_ipv6.pipeline.ripe_atlas import estimate_credits, _PROBE_OFFSETS
+
+          probe_count = int(os.environ.get("INPUT_PROBE_COUNT", "20") or "20")
+          label_str   = os.environ.get("INPUT_MEASUREMENT_LABELS", "").strip()
+          labels      = [l.strip() for l in label_str.split(",")] if label_str else None
+
+          conn = get_connection("data/usg_ipv6.duckdb")
+          init_schema(conn)
+
+          prefix_count = conn.execute("""
+              SELECT COUNT(DISTINCT c.prefix)
+              FROM caida_pfx2as c
+              JOIN asn_corpus ac ON ac.asn = c.asn
+              WHERE c.af = 6
+                AND c.snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = 6)
+          """).fetchone()[0]
+          conn.close()
+
+          targets_per_prefix = len(_PROBE_OFFSETS)
+          est = estimate_credits(prefix_count, targets_per_prefix, probe_count, labels)
+          print(f"Prefixes:          {prefix_count:,}")
+          print(f"Targets/prefix:    {targets_per_prefix}")
+          print(f"Probes:            {probe_count}")
+          print(f"Measurement types: {labels or 'all (ping, tcp_443, tcp_80, tcp_53, traceroute)'}")
+          print(f"Estimated credits: {est:,}")
+          PYEOF
+
+      - name: Run RIPE Atlas prefix sweep
+        env:
+          RIPE_ATLAS_API_KEY:       ${{ secrets.RIPE_ATLAS_API_KEY }}
+          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '20' }}
+          INPUT_COUNTRY_CODE:       ${{ inputs.country_code || 'US' }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels }}
+          INPUT_DRY_RUN:            ${{ inputs.dry_run || 'false' }}
+          INPUT_OBSERVATION_DATE:   ${{ inputs.observation_date }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os, sys
+          from datetime import date
+          from usg_ipv6.pipeline.ripe_atlas import run_prefix_sweep
+
+          api_key = os.environ.get("RIPE_ATLAS_API_KEY", "").strip()
+          if not api_key:
+              print("ERROR: RIPE_ATLAS_API_KEY secret is not set.", file=sys.stderr)
+              sys.exit(1)
+
+          probe_count  = int(os.environ.get("INPUT_PROBE_COUNT", "20") or "20")
+          country_code = os.environ.get("INPUT_COUNTRY_CODE", "US").strip() or "US"
+          label_str    = os.environ.get("INPUT_MEASUREMENT_LABELS", "").strip()
+          labels       = [l.strip() for l in label_str.split(",")] if label_str else None
+          dry_run      = os.environ.get("INPUT_DRY_RUN", "false").lower() == "true"
+          obs_date_str = os.environ.get("INPUT_OBSERVATION_DATE", "").strip()
+          obs_date     = date.fromisoformat(obs_date_str) if obs_date_str else None
+
+          result = run_prefix_sweep(
+              db_path="data/usg_ipv6.duckdb",
+              api_key=api_key,
+              observation_date=obs_date,
+              probe_count=probe_count,
+              country_code=country_code,
+              measurement_labels=labels,
+              dry_run=dry_run,
+          )
+          print(json.dumps(result, indent=2))
+
+          if result.get("dry_run"):
+              print("\nDry run complete — no measurements created, no credits consumed.")
+          else:
+              unique = result.get("unique_responsive_addresses", 0)
+              hops   = result.get("unique_hop_addresses", 0)
+              print(f"\nSweep complete: {unique} unique responsive addresses, "
+                    f"{hops} unique hop addresses discovered.")
+          PYEOF
+
+      - name: Upload updated DuckDB to rolling release
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then
+            echo "No DuckDB to upload."
+            exit 0
+          fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "RIPE Atlas prefix sweep." \
+               --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true

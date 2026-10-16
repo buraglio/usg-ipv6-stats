@@ -205,3 +205,30 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (check_date, domain)
         )
     """)
+    # ── RIPE Atlas enrichment tables ──────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS atlas_observations (
+            observation_date  DATE    NOT NULL,
+            target_address    VARCHAR NOT NULL,
+            matched_prefix    VARCHAR NOT NULL,
+            origin_asn        BIGINT  NOT NULL,
+            measurement_type  VARCHAR NOT NULL,
+            responsive        BOOLEAN NOT NULL,
+            rtt_ms            DOUBLE,
+            probe_count       INTEGER NOT NULL,
+            responding_probes INTEGER NOT NULL DEFAULT 0,
+            msm_id            BIGINT,
+            PRIMARY KEY (observation_date, target_address, measurement_type)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS atlas_hop_addresses (
+            observation_date  DATE    NOT NULL,
+            hop_address       VARCHAR NOT NULL,
+            matched_prefix    VARCHAR,
+            origin_asn        BIGINT,
+            probe_target      VARCHAR NOT NULL,
+            msm_id            BIGINT,
+            PRIMARY KEY (observation_date, hop_address, probe_target)
+        )
+    """)
