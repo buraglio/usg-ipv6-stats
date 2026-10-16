@@ -86,7 +86,12 @@ def parse_mrt(mrt_path: str, parquet_path: str) -> int:
         prefix = d.get("prefix", "")
         if af == 6 and _is_ipv4_mapped(prefix):
             continue
-        prefix_len = int(prefix.split("/")[1]) if "/" in prefix else 0
+        # mrtparse stores the prefix length in d["length"], not embedded in the
+        # prefix string.  Reconstruct CIDR notation so ip_network() parses it
+        # correctly; bare "2001:400::" parses as a /128 host address.
+        prefix_len = d.get("length", int(prefix.split("/")[1]) if "/" in prefix else 0)
+        if prefix_len and "/" not in prefix:
+            prefix = f"{prefix}/{prefix_len}"
         for rib_entry in d.get("rib_entries", []):
             origin = _origin_asn(rib_entry)
             if origin is None:

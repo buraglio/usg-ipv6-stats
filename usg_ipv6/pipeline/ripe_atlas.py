@@ -149,7 +149,13 @@ def run_ripe_atlas_dns(
         return {"targets": 0, "measurements": 0, "new_matches": 0}
 
     corpus_prefixes = conn.execute(
-        "SELECT DISTINCT prefix, origin_asn FROM prefix_records WHERE af = 6"
+        """
+        SELECT DISTINCT c.prefix, c.asn AS origin_asn
+        FROM caida_pfx2as c
+        JOIN asn_corpus ac ON ac.asn = c.asn
+        WHERE c.af = 6
+          AND c.snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = 6)
+        """
     ).fetchall()
     nets = _build_prefix_nets(corpus_prefixes)
 
