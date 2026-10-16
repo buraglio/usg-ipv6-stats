@@ -162,26 +162,33 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     """).fetchall()
 
     # ── Per-ASN current prefixes (for ASN explorer) ───────────────────────────
-    # IPv6: caida_pfx2as stores normalised CIDR notation ("2001:400::/32").
-    # IPv4: caida_pfx2as has no IPv4 rows, so fall back to prefix_records.
-    #       prefix_records stores bare addresses ("192.0.2.0") with prefix_len=0
-    #       for historical data; new ingests (post parse.py fix) will have CIDR.
-    has_caida = conn.execute("SELECT COUNT(*) FROM caida_pfx2as WHERE af=6").fetchone()[0] > 0
-    if has_caida and latest_ts_by_af:
-        v4_clause = (
-            f"SELECT DISTINCT origin_asn, 4 AS af, prefix FROM prefix_records"
-            f" WHERE origin_asn IN (SELECT asn FROM asn_corpus)"
-            f" AND af = 4 AND snapshot_ts = '{latest_ts_by_af[4]}'"
-        ) if 4 in latest_ts_by_af else "SELECT NULL, NULL, NULL WHERE FALSE"
-        asn_prefix_rows = conn.execute(f"""
-            SELECT DISTINCT asn AS origin_asn, 6 AS af, prefix
-            FROM caida_pfx2as
-            WHERE asn IN (SELECT asn FROM asn_corpus) AND af = 6
-              AND snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = 6)
-            UNION ALL
-            {v4_clause}
-            ORDER BY origin_asn, af, prefix
-        """).fetchall()
+    # Prefer caida_pfx2as for each AF (proper CIDR notation via ip_network()).
+    # Fall back to prefix_records for AFs missing from caida_pfx2as — rv2 IPv4
+    # downloads are non-fatal so the table may have only af=6 rows.
+    caida_afs = {
+        row[0]
+        for row in conn.execute("SELECT DISTINCT af FROM caida_pfx2as").fetchall()
+    }
+    clauses = []
+    for af in (4, 6):
+        if af in caida_afs:
+            clauses.append(
+                f"SELECT DISTINCT asn AS origin_asn, {af} AS af, prefix"
+                f" FROM caida_pfx2as"
+                f" WHERE asn IN (SELECT asn FROM asn_corpus) AND af = {af}"
+                f" AND snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = {af})"
+            )
+        elif af in (latest_ts_by_af or {}):
+            clauses.append(
+                f"SELECT DISTINCT origin_asn, {af} AS af, prefix"
+                f" FROM prefix_records"
+                f" WHERE origin_asn IN (SELECT asn FROM asn_corpus)"
+                f" AND af = {af} AND snapshot_ts = '{latest_ts_by_af[af]}'"
+            )
+    if clauses:
+        asn_prefix_rows = conn.execute(
+            " UNION ALL ".join(clauses) + " ORDER BY origin_asn, af, prefix"
+        ).fetchall()
     elif latest_ts_by_af:
         af_clauses_asn = " UNION ALL ".join(
             f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
