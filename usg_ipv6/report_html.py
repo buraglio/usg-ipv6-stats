@@ -162,17 +162,39 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     """).fetchall()
 
     # ── Per-ASN current prefixes (for ASN explorer) ───────────────────────────
-    # caida_pfx2as stores prefixes in proper CIDR notation (e.g. "2001:400::/32")
-    # because its ingest normalises via ip_network().  prefix_records stores bare
-    # network addresses ("2001:400::") with prefix_len=0 for historical data, so
-    # ip_network() would give /128 host routes — wrong for display and matching.
-    asn_prefix_rows = conn.execute("""
-        SELECT DISTINCT asn AS origin_asn, af, prefix
-        FROM caida_pfx2as
-        WHERE asn IN (SELECT asn FROM asn_corpus)
-          AND snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as)
-        ORDER BY asn, af, prefix
-    """).fetchall() if conn.execute("SELECT COUNT(*) FROM caida_pfx2as").fetchone()[0] else []
+    # IPv6: caida_pfx2as stores normalised CIDR notation ("2001:400::/32").
+    # IPv4: caida_pfx2as has no IPv4 rows, so fall back to prefix_records.
+    #       prefix_records stores bare addresses ("192.0.2.0") with prefix_len=0
+    #       for historical data; new ingests (post parse.py fix) will have CIDR.
+    has_caida = conn.execute("SELECT COUNT(*) FROM caida_pfx2as WHERE af=6").fetchone()[0] > 0
+    if has_caida and latest_ts_by_af:
+        v4_clause = (
+            f"SELECT DISTINCT origin_asn, 4 AS af, prefix FROM prefix_records"
+            f" WHERE origin_asn IN (SELECT asn FROM asn_corpus)"
+            f" AND af = 4 AND snapshot_ts = '{latest_ts_by_af[4]}'"
+        ) if 4 in latest_ts_by_af else "SELECT NULL, NULL, NULL WHERE FALSE"
+        asn_prefix_rows = conn.execute(f"""
+            SELECT DISTINCT asn AS origin_asn, 6 AS af, prefix
+            FROM caida_pfx2as
+            WHERE asn IN (SELECT asn FROM asn_corpus) AND af = 6
+              AND snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = 6)
+            UNION ALL
+            {v4_clause}
+            ORDER BY origin_asn, af, prefix
+        """).fetchall()
+    elif latest_ts_by_af:
+        af_clauses_asn = " UNION ALL ".join(
+            f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
+            for af, ts in latest_ts_by_af.items()
+        )
+        asn_prefix_rows = conn.execute(f"""
+            SELECT DISTINCT origin_asn, af, prefix
+            FROM ({af_clauses_asn})
+            WHERE origin_asn IN (SELECT asn FROM asn_corpus)
+            ORDER BY origin_asn, af, prefix
+        """).fetchall()
+    else:
+        asn_prefix_rows = []
 
     # Group prefixes per ASN
     asn_prefixes: dict = {}
