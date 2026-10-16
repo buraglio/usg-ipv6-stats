@@ -162,19 +162,17 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
     """).fetchall()
 
     # ── Per-ASN current prefixes (for ASN explorer) ───────────────────────────
-    if latest_ts_by_af:
-        af_clauses_asn = " UNION ALL ".join(
-            f"SELECT * FROM prefix_records WHERE af = {af} AND snapshot_ts = '{ts}'"
-            for af, ts in latest_ts_by_af.items()
-        )
-        asn_prefix_rows = conn.execute(f"""
-            SELECT DISTINCT origin_asn, af, prefix
-            FROM ({af_clauses_asn})
-            WHERE origin_asn IN (SELECT asn FROM asn_corpus)
-            ORDER BY origin_asn, af, prefix
-        """).fetchall()
-    else:
-        asn_prefix_rows = []
+    # caida_pfx2as stores prefixes in proper CIDR notation (e.g. "2001:400::/32")
+    # because its ingest normalises via ip_network().  prefix_records stores bare
+    # network addresses ("2001:400::") with prefix_len=0 for historical data, so
+    # ip_network() would give /128 host routes — wrong for display and matching.
+    asn_prefix_rows = conn.execute("""
+        SELECT DISTINCT asn AS origin_asn, af, prefix
+        FROM caida_pfx2as
+        WHERE asn IN (SELECT asn FROM asn_corpus)
+          AND snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as)
+        ORDER BY asn, af, prefix
+    """).fetchall() if conn.execute("SELECT COUNT(*) FROM caida_pfx2as").fetchone()[0] else []
 
     # Group prefixes per ASN
     asn_prefixes: dict = {}
