@@ -635,8 +635,8 @@ def _page(
   <a href="#by-tier">By Tier</a>
   <a href="#reachability">IPv6 Reachability</a>
   <a href="#hitlist">Live Endpoints</a>
-  <a href="#asn-explorer">ASN Explorer</a>
   <a href="#enrichment">Enrichment</a>
+  <a href="#asn-explorer">ASN Explorer</a>
   <a href="#data-sources">Data Sources</a>
   <a href="#disclaimer">Disclaimer</a>
 </nav>
@@ -702,6 +702,8 @@ def _page(
 
 {hl_section}
 
+{_enrichment_section(enrichment_data)}
+
 <section id="asn-explorer">
   <h2>ASN Explorer</h2>
   <p class="section-blurb">
@@ -762,8 +764,6 @@ def _page(
     {corpus_tbl}
   </div>
 </section>
-
-{_enrichment_section(enrichment_data)}
 
 <section id="data-sources">
   <h2>Data Sources &amp; Snapshot Inventory</h2>
@@ -1434,21 +1434,36 @@ def _hitlist_section(hitlist_data) -> str:
 
     # ── Per-agency table ──────────────────────────────────────────────────────
     if d["agency_rows"]:
-        tbl_body = "".join(
-            f"<tr>"
-            f"<td>{_esc(r[0])}</td>"
-            f"<td><span class='tier-tag tier-{_esc(r[1])}'>{_tier_label(r[1])}</span></td>"
-            f"<td><code>{_esc(r[2])}</code></td>"
-            f"<td class='num'>{r[3]:,}</td>"
-            f"<td class='num'>{r[5]:,}</td>"
-            f"<td class='num'>{r[4]:,}</td>"
-            f"</tr>"
-            for r in d["agency_rows"]
-        )
-        agency_tbl = _table(
-            ["Agency", "Tier", "ASN", "Responsive", "Likely Real", "Aliased"],
-            tbl_body,
-        )
+        _cols = ["Agency", "Tier", "ASN", "Responsive", "Likely Real", "Aliased"]
+        active_rows = [r for r in d["agency_rows"] if r[3] > 0]
+        zero_rows   = [r for r in d["agency_rows"] if r[3] == 0]
+
+        def _agency_tr(r):
+            return (
+                f"<tr>"
+                f"<td>{_esc(r[0])}</td>"
+                f"<td><span class='tier-tag tier-{_esc(r[1])}'>{_tier_label(r[1])}</span></td>"
+                f"<td><code>{_esc(r[2])}</code></td>"
+                f"<td class='num'>{r[3]:,}</td>"
+                f"<td class='num'>{r[5]:,}</td>"
+                f"<td class='num'>{r[4]:,}</td>"
+                f"</tr>"
+            )
+
+        active_tbl = _table(_cols, "".join(_agency_tr(r) for r in active_rows)) if active_rows else ""
+        if zero_rows:
+            zero_tbl = _table(_cols, "".join(_agency_tr(r) for r in zero_rows))
+            zero_block = (
+                f"<details style='margin-top:0.5rem'>"
+                f"<summary style='cursor:pointer;padding:0.4rem 0;font-size:0.875rem;"
+                f"color:var(--muted);user-select:none'>"
+                f"{len(zero_rows)} agenc{'y' if len(zero_rows)==1 else 'ies'} with 0 responsive addresses</summary>"
+                f"<div style='overflow-x:auto;margin-top:0.5rem'>{zero_tbl}</div>"
+                f"</details>"
+            )
+        else:
+            zero_block = ""
+        agency_tbl = active_tbl + zero_block
     else:
         agency_tbl = "<p class='empty'>No per-agency data available.</p>"
 
