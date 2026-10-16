@@ -292,7 +292,7 @@ All targets accept variable overrides on the command line (see [Configuration va
 
 ## GitHub Actions
 
-Six workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
+Seven workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
 
 ### Corpus Update (`corpus-update.yml`)
 
@@ -396,6 +396,26 @@ Four enrichment workflows run independently of the BGP ingests and write to sepa
 - **Manual dispatch**: accepts `af` (4, 6, or 0 for both; default 6)
 - Checks every corpus prefix / origin-AS pair against the [Cloudflare RPKI validity API](https://rpki.cloudflare.com/api/v1/validity/), falling back to the RIPE Stat API. Results — `valid`, `invalid`, or `not_found` — are stored in `rpki_validity` along with the ROA max-length.
 - **Why:** A `valid` ROA means the operator explicitly authorized this origin AS for this prefix, a strong signal of intentional, maintained operation. `invalid` may indicate route leaks or stale announcements worth investigation.
+
+### RIPE Atlas Prefix Sweep (`atlas-sweep.yml`)
+
+Discovers live IPv6 addresses within corpus prefixes that evade ICMP-based probing (hitlist, Ark) due to federal firewall policy, using multi-type Atlas measurements from US-based probes.
+
+- **Scheduled**: Saturdays 10:00 UTC (after the Friday hitlist run)
+- **Manual dispatch**: accepts `probe_count` (default 20), `country_code` (default `US`), `measurement_labels` (comma-separated subset of `ping,tcp_443,tcp_80,tcp_53,traceroute`; default all five), `dry_run` (estimate credits without creating measurements), and `observation_date`
+- **Requires:** `RIPE_ATLAS_API_KEY` GitHub Actions secret with *Create User Defined Measurements* scope; `caida_pfx2as` must contain IPv6 rows
+
+**What it does:**
+
+1. Downloads the existing DuckDB from the `data-latest` release.
+2. Verifies CAIDA pfx2as IPv6 data is present for the current month (downloads rv6 if not).
+3. Prints a credit estimate before creating any measurements.
+4. For each corpus IPv6 prefix (530 distinct prefixes as of October 2026), generates up to 10 candidate target addresses using low-numbered host-part offsets (::1, ::2, ::a, ::53, ::64, ::7b, etc.) plus any seeds from `domain_services` or `hitlist_addresses` that fall within the prefix.
+5. Issues each measurement type (ping / TCP 443 / TCP 80 / TCP 53 / traceroute) per target from 20 US-based Atlas probes.
+6. Parses results: responsive targets are stored in `atlas_observations`; intermediate router addresses discovered via traceroute within corpus prefixes are stored in `atlas_hop_addresses`.
+7. Re-uploads the updated DuckDB and triggers the GitHub Pages rebuild (skipped on dry run).
+
+**Measurement credit estimate** (default settings): ~4.35M credits per run (530 prefixes × 10 targets × 20 probes × 41 credits/target across all five types). Use `dry_run=true` to verify before committing.
 
 ### Deploy GitHub Pages (`pages.yml`)
 
@@ -709,19 +729,23 @@ The TU Munich IPv6 Hitlist sends ICMPv6 echo requests from a single vantage poin
 | **NIST USGv6 Deployment Monitor** | Per-domain IPv6 service metrics + DNSSEC status | Daily | Independent TCP reachability measurement; DNSSEC chain = actively maintained zone |
 | **Certificate Transparency (crt.sh)** | TLS certs issued to `*.gov` subdomains in last year | Weekly | Cert issuance date = reliable last-active lower bound; reveals subdomains absent from public DNS |
 | **RPKI validity (Cloudflare / RIPE Stat)** | ROA coverage for each prefix / origin-AS pair | Weekly | `valid` ROA = operator explicitly authorized this prefix, strong maintenance signal |
+| **RIPE Atlas prefix sweep** | ICMPv6 ping + TCP/443/80/53 + traceroute per prefix | Weekly (Sat) | Multi-type probing finds hosts behind ICMP-blocking firewalls; traceroute hops reveal routers even when end-hosts are firewalled |
 | **Rapid7 FDNS AAAA** *(stub)* | Forward DNS AAAA records for the whole `.gov` namespace | On-demand | Broadest hostname coverage; requires Rapid7 Insight account |
-| **RIPE Atlas DNS + TCP** *(stub)* | DNS AAAA + TCP reach from US-based IPv6 probes | On-demand | Vantage-point diversity beyond a single scanner; requires Atlas API key |
 | **BGP community tags** | Standard and large communities on RIB entries | Per BGP ingest | Blackhole (`65535:666`) and traffic-engineering tags identify filtered or deprioritized prefixes |
 
 ### Enrichment methodology
 
 Each enrichment source resolves hostnames or checks prefix metadata independently. Results are stored in the `domain_services`, `nist_deploymon`, `rpki_validity`, and `bgp_communities` tables (see [Database schema](#database-schema) below). A prefix is considered "likely active" when it has at least one corroborating signal from an enrichment source that is independent of the BGP table itself.
 
-### Setting up stubs
+### Setting up RIPE Atlas
+
+`usg_ipv6/pipeline/ripe_atlas.py` is a full multi-type active measurement pipeline. To enable it:
+
+1. Register at [atlas.ripe.net](https://atlas.ripe.net/) and create an API key with *Create User Defined Measurements* scope.
+2. Add the key as the `RIPE_ATLAS_API_KEY` GitHub Actions secret.
+3. The `atlas-sweep.yml` workflow runs automatically each Saturday. Run `workflow_dispatch` with `dry_run=true` first to verify credit cost before the first live sweep.
 
 **Rapid7 FDNS** (`usg_ipv6/pipeline/rapid7_fdns.py`): Download a Sonar FDNS AAAA `.json.gz` file from [opendata.rapid7.com](https://opendata.rapid7.com/sonar.fdns_v2/) (requires free Insight account). Pass the local path to `run_rapid7_fdns(db_path, fdns_path=...)`.
-
-**RIPE Atlas** (`usg_ipv6/pipeline/ripe_atlas.py`): Register at [atlas.ripe.net](https://atlas.ripe.net/), generate an API key with *Create User Defined Measurements* permission, and set `RIPE_ATLAS_API_KEY` in GitHub Actions secrets.
 
 ---
 
@@ -880,6 +904,36 @@ One row per (check date, prefix, origin ASN). Written by `enrichment-rpki.yml`.
 | `status` | VARCHAR | `valid`, `invalid`, or `not_found` |
 | `roa_max_length` | INTEGER | ROA max-length (NULL when status ≠ `valid`) |
 
+### `atlas_observations`
+
+One row per (observation date, target address, measurement type). Written by `atlas-sweep.yml` / `run_prefix_sweep()`.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `observation_date` | DATE PK | Date the sweep ran |
+| `target_address` | VARCHAR PK | IPv6 address that was probed |
+| `matched_prefix` | VARCHAR | Corpus IPv6 prefix the address falls within |
+| `origin_asn` | BIGINT | Corpus ASN owning that prefix |
+| `measurement_type` | VARCHAR PK | `ping`, `tcp_443`, `tcp_80`, `tcp_53`, or `traceroute` |
+| `responsive` | BOOLEAN | TRUE if ≥1 probe received a response |
+| `rtt_ms` | DOUBLE | Median RTT across responding probes (NULL if none responded) |
+| `probe_count` | INTEGER | Number of Atlas probes used |
+| `responding_probes` | INTEGER | Count of probes that received a response |
+| `msm_id` | BIGINT | Atlas measurement ID (for result verification) |
+
+### `atlas_hop_addresses`
+
+Router addresses discovered inside corpus prefixes via traceroute hop extraction. These addresses respond to traceroute even when the end-hosts at the same prefix are firewalled against ICMPv6 echo and TCP probes.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `observation_date` | DATE PK | Date the sweep ran |
+| `hop_address` | VARCHAR PK | IPv6 router/hop address found in traceroute results |
+| `matched_prefix` | VARCHAR | Corpus IPv6 prefix the hop address falls within |
+| `origin_asn` | BIGINT | Corpus ASN owning that prefix |
+| `probe_target` | VARCHAR PK | Target address of the measurement that produced this hop |
+| `msm_id` | BIGINT | Atlas measurement ID |
+
 ### `bgp_communities`
 
 One row per (snapshot, collector, prefix, origin ASN, community string). Written during BGP MRT normalization.
@@ -986,6 +1040,41 @@ FROM hitlist_addresses
 WHERE observation_date = (SELECT MAX(observation_date) FROM hitlist_addresses)
   AND asn = 297
 ORDER BY address;
+
+-- Atlas: responsive addresses by ASN (most recent sweep, any measurement type)
+SELECT c.agency, c.tier, ao.origin_asn,
+       COUNT(DISTINCT ao.target_address) AS responsive_addresses,
+       COUNT(DISTINCT ao.measurement_type) AS measurement_types_responding
+FROM atlas_observations ao
+JOIN asn_corpus c ON ao.origin_asn = c.asn
+WHERE ao.observation_date = (SELECT MAX(observation_date) FROM atlas_observations)
+  AND ao.responsive = TRUE
+GROUP BY c.agency, c.tier, ao.origin_asn
+ORDER BY responsive_addresses DESC;
+
+-- Atlas: addresses found only via TCP (not visible to ICMP/hitlist)
+SELECT DISTINCT ao.target_address, ao.matched_prefix, ao.origin_asn,
+       c.agency, ao.measurement_type, ao.rtt_ms
+FROM atlas_observations ao
+JOIN asn_corpus c ON ao.origin_asn = c.asn
+WHERE ao.observation_date = (SELECT MAX(observation_date) FROM atlas_observations)
+  AND ao.measurement_type IN ('tcp_443', 'tcp_80', 'tcp_53')
+  AND ao.responsive = TRUE
+  AND ao.target_address NOT IN (
+      SELECT target_address FROM atlas_observations
+      WHERE measurement_type = 'ping' AND responsive = TRUE
+        AND observation_date = (SELECT MAX(observation_date) FROM atlas_observations)
+  )
+ORDER BY ao.origin_asn, ao.target_address;
+
+-- Atlas: router hop addresses discovered inside corpus prefixes via traceroute
+SELECT ah.hop_address, ah.matched_prefix, ah.origin_asn, c.agency,
+       COUNT(*) AS seen_in_n_traceroutes
+FROM atlas_hop_addresses ah
+JOIN asn_corpus c ON ah.origin_asn = c.asn
+WHERE ah.observation_date = (SELECT MAX(observation_date) FROM atlas_hop_addresses)
+GROUP BY ah.hop_address, ah.matched_prefix, ah.origin_asn, c.agency
+ORDER BY seen_in_n_traceroutes DESC;
 ```
 
 ---
@@ -1076,6 +1165,42 @@ result = run_hitlist_backfill(
 print(result)  # {"processed": 366, "skipped": 0, "failed": 0}
 ```
 
+### RIPE Atlas pipeline
+
+```python
+from usg_ipv6.pipeline.ripe_atlas import run_prefix_sweep, estimate_credits, _PROBE_OFFSETS
+
+# Estimate cost before committing
+cost = estimate_credits(
+    prefix_count=530,
+    targets_per_prefix=len(_PROBE_OFFSETS),  # 10
+    probe_count=20,
+    measurement_labels=None,  # None = all five types
+)
+print(f"Estimated credits: {cost:,}")  # ~4,346,000
+
+# Dry run: generate targets and estimate without creating any measurements
+result = run_prefix_sweep(
+    db_path="data/usg_ipv6.duckdb",
+    api_key="",  # not used in dry_run mode
+    dry_run=True,
+)
+print(result)
+# {"prefixes": 530, "targets": 5300, "estimated_credits": 4346000, "measurements_created": 0, "dry_run": True}
+
+# Live sweep (requires RIPE Atlas API key with measurement creation scope)
+result = run_prefix_sweep(
+    db_path="data/usg_ipv6.duckdb",
+    api_key="YOUR_ATLAS_API_KEY",
+    probe_count=20,
+    country_code="US",
+    measurement_labels=["ping", "tcp_443"],  # subset to reduce cost
+)
+print(result)
+# {"prefixes": 530, "targets": 5300, "measurements_created": ...,
+#  "unique_responsive_addresses": ..., "unique_hop_addresses": ...}
+```
+
 ### LPM index (low-level)
 
 ```python
@@ -1129,7 +1254,7 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | [Cloudflare RPKI API](https://rpki.cloudflare.com/api/v1/validity/) | RPKI ROA validity for corpus prefix / ASN pairs (enrichment) | Public REST API, no auth |
 | [RIPE Stat RPKI API](https://stat.ripe.net/docs/02.data-api/) | RPKI fallback when Cloudflare API is unavailable (enrichment) | Public REST API, no auth |
 | [Rapid7 Sonar FDNS](https://opendata.rapid7.com/sonar.fdns_v2/) | Forward DNS AAAA records for `.gov` (enrichment stub) | Requires Insight account |
-| [RIPE Atlas](https://atlas.ripe.net/api/v2/) | DNS + TCP reach from US-based IPv6 probes (enrichment stub) | Requires API key + credits |
+| [RIPE Atlas](https://atlas.ripe.net/api/v2/) | Multi-type IPv6 prefix sweep (ping, TCP, traceroute) from US probes | Requires API key + credits |
 
 **ARIN in CI:** ARIN WHOIS is unreachable from GitHub Actions IP ranges. A fast pre-flight check (`arin_reachable()`) detects this and skips ARIN queries rather than burning through retries, falling back to CAIDA-only corpus building.
 
@@ -1174,7 +1299,7 @@ usg_ipv6/
     cert_transparency.py # crt.sh SAN resolution for *.gov certs → domain_services
     rpki_validity.py     # Cloudflare / RIPE RPKI ROA validation → rpki_validity
     rapid7_fdns.py       # Stub: Rapid7 Sonar FDNS AAAA ingest (requires Insight account)
-    ripe_atlas.py        # Stub: RIPE Atlas DNS + TCP reach measurements (requires API key)
+    ripe_atlas.py        # RIPE Atlas prefix sweep: ping/TCP/traceroute per corpus IPv6 prefix
 
 .github/workflows/
   corpus-update.yml             # Weekly corpus rebuild; manual dispatch commits to main
@@ -1182,6 +1307,7 @@ usg_ipv6/
   routeviews-backfill.yml       # Manual historical backfill
   ark-ingest.yml                # Wednesday Ark IPv6 reachability ingest
   hitlist-ingest.yml            # Friday IPv6 Hitlist responsive-address ingest
+  atlas-sweep.yml               # Saturday RIPE Atlas prefix sweep (requires RIPE_ATLAS_API_KEY)
   enrichment-dotgov-dns.yml     # Daily .gov DNS AAAA enumeration (06:42 UTC)
   enrichment-nist.yml           # Daily NIST USGv6 monitor scrape (20:17 UTC)
   enrichment-cert-transparency.yml # Weekly crt.sh Certificate Transparency (Mon 03:23 UTC)
