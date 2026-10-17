@@ -14,16 +14,16 @@ name: RIPE Atlas Prefix Sweep
 # Credit budget (default: 20 probes, all 5 types, ~530 prefixes, 10 targets):
 #   530 × 10 × 20 × (1+10+10+10+10) = ~4.35M credits per run.
 # Adjust probe_count or measurement_labels inputs to reduce cost.
-
+# Removed: ping, traceroute 
 on:
   schedule:
     - cron: '0 10 * * 6'    # Saturday 10:00 UTC (after Friday hitlist run)
   workflow_dispatch:
     inputs:
       probe_count:
-        description: Number of Atlas probes per measurement (default 20).
+        description: Number of Atlas probes per measurement (default 5).
         required: false
-        default: '20'
+        default: '5'
         type: string
       country_code:
         description: ISO 3166-1 probe country (default US).
@@ -32,8 +32,8 @@ on:
         type: string
       measurement_labels:
         description: |
-          Comma-separated subset of measurement types to run.
-          Valid values: ping, tcp_443, tcp_80, tcp_53, traceroute
+          Comma-separated subset of measurement types to run. 
+          Valid values: tcp_443, tcp_80, tcp_53 
           Leave blank to run all five types.
         required: false
         default: ''
