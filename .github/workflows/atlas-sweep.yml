@@ -1,27 +1,32 @@
 name: RIPE Atlas Prefix Sweep
 
-# Probes USG IPv6 corpus prefixes using RIPE Atlas measurements to discover
-# live addresses that evade ICMP-based probing (hitlist, Ark) due to firewall
-# policy.  For each corpus prefix, generates candidate target addresses and
-# runs ICMPv6 ping, TCP connect (443/80/53), and traceroute measurements from
-# US-based Atlas probes.  Traceroute hop addresses are extracted separately —
-# routers within corpus prefixes respond to traceroute even when end-hosts
-# are firewalled.
+# Probes USG IPv6 corpus prefixes using RIPE Atlas to discover live
+# addresses that evade ICMP-based probing (hitlist, Ark) due to firewall
+# policy.  Generates candidate target addresses per prefix and runs Atlas
+# measurements from US-based probes.  Traceroute hop addresses inside
+# corpus prefixes are extracted separately — routers respond even when
+# end-hosts are firewalled.
 #
-# Requires: RIPE_ATLAS_API_KEY secret with "Create User Defined Measurements"
-# scope.  DuckDB lives in the rolling 'data-latest' GitHub Release.
+# Architecture (batch mode — avoids CI timeout):
+#   1. Select prefix_batch_size oldest-probed prefixes (never-probed first).
+#   2. Submit all measurements concurrently (ThreadPoolExecutor).
+#   3. Sleep once for wait_minutes while Atlas runs probes.
+#   4. Fetch and store all results concurrently.
+#   Full corpus (~530 prefixes) cycles in ~6 weekly runs at batch_size=100.
 #
-# Credit budget (default: 20 probes, all 5 types, ~530 prefixes, 10 targets):
-#   530 × 10 × 20 × (1+10+10+10+10) = ~4.35M credits per run.
-# Adjust probe_count or measurement_labels inputs to reduce cost.
-# Removed: ping, traceroute 
+# Requires: RIPE_ATLAS_API_KEY secret with "Create measurements" scope.
+# DuckDB lives in the rolling 'data-latest' GitHub Release.
+#
+# Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping+traceroute):
+#   100 × 5 × 5 × (1 + 10) = 27,500 credits per run.
+
 on:
   schedule:
     - cron: '0 10 * * 6'    # Saturday 10:00 UTC (after Friday hitlist run)
   workflow_dispatch:
     inputs:
       probe_count:
-        description: Number of Atlas probes per measurement (default 5).
+        description: Atlas probes per measurement (default 5).
         required: false
         default: '5'
         type: string
@@ -32,16 +37,24 @@ on:
         type: string
       measurement_labels:
         description: |
-          Comma-separated subset of measurement types to run. 
-          Valid values: tcp_443, tcp_80, tcp_53 
-          Leave blank to run all five types.
+          Comma-separated measurement types. Valid: ping, traceroute, tcp_443, tcp_80, tcp_53.
+          Default: ping,traceroute
         required: false
-        default: ''
+        default: 'ping,traceroute'
+        type: string
+      prefix_batch_size:
+        description: Prefixes to sweep per run (default 100; full corpus ~530).
+        required: false
+        default: '100'
+        type: string
+      wait_minutes:
+        description: Minutes to wait after submitting measurements (default 15).
+        required: false
+        default: '15'
         type: string
       dry_run:
         description: |
-          If true, generate targets and estimate credits without creating
-          any Atlas measurements (no credits consumed).
+          If true, estimate credits only — no measurements created, no credits consumed.
         required: false
         default: 'false'
         type: string
@@ -58,7 +71,7 @@ jobs:
   atlas-sweep:
     name: RIPE Atlas corpus IPv6 prefix sweep
     runs-on: ubuntu-latest
-    timeout-minutes: 360    # traceroute measurements take ~10 min each to complete
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +99,7 @@ jobs:
           uv run python << 'PYEOF'
           from usg_ipv6.db import get_connection, init_schema
           from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
-          from datetime import date
+          from datetime import date, timedelta
           import sys
 
           today = date.today()
@@ -109,7 +122,6 @@ jobs:
                 file=sys.stderr)
           downloaded = None
           for days_back in range(8):
-              from datetime import timedelta
               attempt = date.fromordinal(today.toordinal() - days_back)
               try:
                   downloaded = download_pfx2as('data/raw', attempt.isoformat(), 'rv6')
@@ -129,24 +141,26 @@ jobs:
           conn.close()
           PYEOF
 
-      - name: Estimate Atlas credit cost (dry run preview)
+      - name: Estimate Atlas credit cost
         env:
-          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '20' }}
-          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels }}
+          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '5' }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping,traceroute' }}
+          INPUT_PREFIX_BATCH_SIZE:  ${{ inputs.prefix_batch_size || '100' }}
         run: |
           uv run python << 'PYEOF'
           import os
           from usg_ipv6.db import get_connection, init_schema
           from usg_ipv6.pipeline.ripe_atlas import estimate_credits, _PROBE_OFFSETS
 
-          probe_count = int(os.environ.get("INPUT_PROBE_COUNT", "20") or "20")
-          label_str   = os.environ.get("INPUT_MEASUREMENT_LABELS", "").strip()
-          labels      = [l.strip() for l in label_str.split(",")] if label_str else None
+          probe_count   = int(os.environ.get("INPUT_PROBE_COUNT", "5") or "5")
+          batch_size    = int(os.environ.get("INPUT_PREFIX_BATCH_SIZE", "100") or "100")
+          label_str     = os.environ.get("INPUT_MEASUREMENT_LABELS", "ping,traceroute").strip()
+          labels        = [l.strip() for l in label_str.split(",")] if label_str else None
 
           conn = get_connection("data/usg_ipv6.duckdb")
           init_schema(conn)
 
-          prefix_count = conn.execute("""
+          total_prefixes = conn.execute("""
               SELECT COUNT(DISTINCT c.prefix)
               FROM caida_pfx2as c
               JOIN asn_corpus ac ON ac.asn = c.asn
@@ -155,21 +169,28 @@ jobs:
           """).fetchone()[0]
           conn.close()
 
+          run_prefixes = min(batch_size, total_prefixes)
           targets_per_prefix = len(_PROBE_OFFSETS)
-          est = estimate_credits(prefix_count, targets_per_prefix, probe_count, labels)
-          print(f"Prefixes:          {prefix_count:,}")
-          print(f"Targets/prefix:    {targets_per_prefix}")
-          print(f"Probes:            {probe_count}")
-          print(f"Measurement types: {labels or 'all (ping, tcp_443, tcp_80, tcp_53, traceroute)'}")
-          print(f"Estimated credits: {est:,}")
+          est = estimate_credits(run_prefixes, targets_per_prefix, probe_count, labels)
+          runs_to_full = -(-total_prefixes // batch_size)  # ceiling div
+
+          print(f"Total corpus prefixes: {total_prefixes:,}")
+          print(f"This run (batch_size):  {run_prefixes:,}")
+          print(f"Targets/prefix:         {targets_per_prefix}")
+          print(f"Probes/measurement:     {probe_count}")
+          print(f"Measurement types:      {labels or 'default'}")
+          print(f"Estimated credits:      {est:,}")
+          print(f"Runs to full coverage:  {runs_to_full}")
           PYEOF
 
       - name: Run RIPE Atlas prefix sweep
         env:
           RIPE_ATLAS_API_KEY:       ${{ secrets.RIPE_ATLAS_API_KEY }}
-          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '20' }}
+          INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '5' }}
           INPUT_COUNTRY_CODE:       ${{ inputs.country_code || 'US' }}
-          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping,traceroute' }}
+          INPUT_PREFIX_BATCH_SIZE:  ${{ inputs.prefix_batch_size || '100' }}
+          INPUT_WAIT_MINUTES:       ${{ inputs.wait_minutes || '15' }}
           INPUT_DRY_RUN:            ${{ inputs.dry_run || 'false' }}
           INPUT_OBSERVATION_DATE:   ${{ inputs.observation_date }}
         run: |
@@ -183,13 +204,15 @@ jobs:
               print("ERROR: RIPE_ATLAS_API_KEY secret is not set.", file=sys.stderr)
               sys.exit(1)
 
-          probe_count  = int(os.environ.get("INPUT_PROBE_COUNT", "20") or "20")
-          country_code = os.environ.get("INPUT_COUNTRY_CODE", "US").strip() or "US"
-          label_str    = os.environ.get("INPUT_MEASUREMENT_LABELS", "").strip()
-          labels       = [l.strip() for l in label_str.split(",")] if label_str else None
-          dry_run      = os.environ.get("INPUT_DRY_RUN", "false").lower() == "true"
-          obs_date_str = os.environ.get("INPUT_OBSERVATION_DATE", "").strip()
-          obs_date     = date.fromisoformat(obs_date_str) if obs_date_str else None
+          probe_count   = int(os.environ.get("INPUT_PROBE_COUNT",       "5")    or "5")
+          batch_size    = int(os.environ.get("INPUT_PREFIX_BATCH_SIZE",  "100")  or "100")
+          wait_minutes  = int(os.environ.get("INPUT_WAIT_MINUTES",       "15")   or "15")
+          country_code  = os.environ.get("INPUT_COUNTRY_CODE", "US").strip() or "US"
+          label_str     = os.environ.get("INPUT_MEASUREMENT_LABELS", "ping,traceroute").strip()
+          labels        = [l.strip() for l in label_str.split(",")] if label_str else None
+          dry_run       = os.environ.get("INPUT_DRY_RUN", "false").lower() == "true"
+          obs_date_str  = os.environ.get("INPUT_OBSERVATION_DATE", "").strip()
+          obs_date      = date.fromisoformat(obs_date_str) if obs_date_str else None
 
           result = run_prefix_sweep(
               db_path="data/usg_ipv6.duckdb",
@@ -198,6 +221,8 @@ jobs:
               probe_count=probe_count,
               country_code=country_code,
               measurement_labels=labels,
+              prefix_batch_size=batch_size,
+              wait_minutes=wait_minutes,
               dry_run=dry_run,
           )
           print(json.dumps(result, indent=2))
@@ -207,7 +232,9 @@ jobs:
           else:
               unique = result.get("unique_responsive_addresses", 0)
               hops   = result.get("unique_hop_addresses", 0)
-              print(f"\nSweep complete: {unique} unique responsive addresses, "
+              msms   = result.get("measurements_created", 0)
+              print(f"\nSweep complete: {msms} measurements, "
+                    f"{unique} unique responsive addresses, "
                     f"{hops} unique hop addresses discovered.")
           PYEOF
 
