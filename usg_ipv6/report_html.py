@@ -700,9 +700,9 @@ def _page(
 <section id="trends">
   <h2>Prefix Announcement Trends</h2>
   <p class="section-blurb">
-    IPv6 and IPv4 prefix counts over each ingested RouteViews snapshot.
-    A rising IPv6 line indicates growing IPv6 deployment across the USG corpus.
-    Toggle address families using the legend.
+    IPv6 prefix counts over each ingested RouteViews snapshot.
+    A rising line indicates growing IPv6 deployment across the USG corpus.
+    IPv4 is hidden by default — click <strong>IPv4 Prefixes</strong> in the legend to show it.
   </p>
   <div class="chart-wrap card">
     <div class="chart-toolbar">
@@ -918,6 +918,7 @@ let hitlistChart = null;
           borderColor: '#1a7f37',
           backgroundColor: 'rgba(26,127,55,0.06)',
           tension: 0.3, fill: true, pointRadius: 4, spanGaps: true,
+          hidden: true,
         }},
         {{
           label: 'IPv6 ASNs',
