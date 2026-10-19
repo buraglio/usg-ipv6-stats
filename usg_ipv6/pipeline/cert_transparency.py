@@ -13,14 +13,18 @@ Why CT logs beat active scanning for some hosts:
 - Cert validity window gives a reliable "last active no earlier than"
   timestamp.
 
-API: https://crt.sh/?q=%.gov&output=json (no auth, no rate-limit key,
-     but be polite — query per registered domain from the dotgov CSV
-     rather than a single massive wildcard query).
+Architecture (concurrent — avoids CI timeout):
+  1. Fetch crt.sh cert lists for all domains concurrently (_CRT_WORKERS).
+  2. Collect all unique hostnames from recent certs across all domains.
+  3. Resolve all unique hostnames to AAAA concurrently (_DNS_WORKERS).
+  Sequential-per-domain fetching with a per-request sleep previously
+  caused 120-minute CI timeouts on the ~1,500-domain federal list.
+
+API: https://crt.sh/?q=%.gov&output=json (no auth, no rate-limit key).
 """
 
-import ipaddress
 import logging
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_cls, datetime
 
 import requests
@@ -35,8 +39,9 @@ from usg_ipv6.pipeline.dotgov_dns import (
 log = logging.getLogger(__name__)
 
 CRT_SH_URL = "https://crt.sh/"
-REQUEST_DELAY = 0.5   # seconds between crt.sh requests (polite)
-RECENT_DAYS = 365     # only consider certs not-before within this window
+RECENT_DAYS = 365   # only consider certs not-before within this window
+_CRT_WORKERS = 8    # concurrent crt.sh fetch threads (polite toward crt.sh)
+_DNS_WORKERS = 20   # concurrent AAAA resolution threads
 
 
 def _fetch_certs(domain: str) -> list[dict]:
@@ -82,7 +87,12 @@ def run_cert_transparency(
     """
     Query crt.sh for *.gov certs, resolve SANs to AAAA, match corpus prefixes.
 
-    Returns summary dict with domains_checked, certs_found, rows_inserted, matches.
+    Phase 1: fetch cert lists for all domains concurrently.
+    Phase 2: resolve all unique hostnames to AAAA concurrently.
+    This replaces the sequential-per-domain loop that caused CI timeouts.
+
+    Returns summary dict: domains_checked, certs_found, hostnames_resolved,
+    rows_inserted, matches.
     """
     from usg_ipv6.db import get_connection, init_schema
 
@@ -92,46 +102,68 @@ def run_cert_transparency(
     conn = get_connection(db_path)
     init_schema(conn)
 
-    corpus_prefixes = conn.execute(
-        """
+    corpus_prefixes = conn.execute("""
         SELECT DISTINCT c.prefix, c.asn AS origin_asn
         FROM caida_pfx2as c
         JOIN asn_corpus ac ON ac.asn = c.asn
         WHERE c.af = 6
           AND c.snapshot_date = (SELECT MAX(snapshot_date) FROM caida_pfx2as WHERE af = 6)
-        """
-    ).fetchall()
+    """).fetchall()
     nets = _build_prefix_nets(corpus_prefixes)
 
     domains = _fetch_federal_domains()
-    log.info("CT: checking %d .gov domains against crt.sh", len(domains))
+    log.info("CT: fetching certs for %d .gov domains (concurrent, %d workers)",
+             len(domains), _CRT_WORKERS)
 
+    # ── Phase 1: fetch all cert lists concurrently ────────────────────────────
+    # Maps domain → list of recent cert dicts.
+    domain_certs: dict[str, list[dict]] = {}
+    with ThreadPoolExecutor(max_workers=_CRT_WORKERS) as pool:
+        futures = {pool.submit(_fetch_certs, d): d for d in domains}
+        for fut in as_completed(futures):
+            domain = futures[fut]
+            try:
+                all_certs = fut.result()
+                domain_certs[domain] = [c for c in all_certs if _is_recent(c, cutoff)]
+            except Exception as exc:
+                log.warning("CT fetch error for %s: %s", domain, exc)
+                domain_certs[domain] = []
+
+    # Collect all unique hostnames across all domains.
+    total_certs = sum(len(certs) for certs in domain_certs.values())
+    hostname_to_domain: dict[str, str] = {}
+    for domain, certs in domain_certs.items():
+        for cert in certs:
+            for hostname in _extract_names(cert):
+                if hostname not in hostname_to_domain:
+                    hostname_to_domain[hostname] = domain
+
+    log.info("CT: %d recent certs, %d unique hostnames to resolve",
+             total_certs, len(hostname_to_domain))
+
+    # ── Phase 2: resolve all unique hostnames concurrently ───────────────────
+    hostname_addrs: dict[str, list[str]] = {}
+    with ThreadPoolExecutor(max_workers=_DNS_WORKERS) as pool:
+        futures = {pool.submit(_resolve_aaaa, h): h for h in hostname_to_domain}
+        for fut in as_completed(futures):
+            hostname = futures[fut]
+            try:
+                hostname_addrs[hostname] = fut.result()
+            except Exception as exc:
+                log.debug("CT AAAA resolution error for %s: %s", hostname, exc)
+                hostname_addrs[hostname] = []
+
+    # ── Build rows and store ──────────────────────────────────────────────────
     conn.execute(
         "DELETE FROM domain_services WHERE observation_date = ? AND source = 'ct'",
         [obs_date],
     )
 
     svc_rows: list[tuple] = []
-    total_certs = 0
-    seen_hostnames: set[str] = set()
-
-    for domain in domains:
-        certs = _fetch_certs(domain)
-        recent = [c for c in certs if _is_recent(c, cutoff)]
-        total_certs += len(recent)
-
-        for cert in recent:
-            for hostname in _extract_names(cert):
-                if hostname in seen_hostnames:
-                    continue
-                seen_hostnames.add(hostname)
-                for addr in _resolve_aaaa(hostname):
-                    pfx, asn = _match_prefix(addr, nets)
-                    svc_rows.append((
-                        obs_date, domain, "ct", hostname, addr, pfx, asn, "ct"
-                    ))
-
-        time.sleep(REQUEST_DELAY)
+    for hostname, domain in hostname_to_domain.items():
+        for addr in hostname_addrs.get(hostname, []):
+            pfx, asn = _match_prefix(addr, nets)
+            svc_rows.append((obs_date, domain, "ct", hostname, addr, pfx, asn, "ct"))
 
     matches = sum(1 for r in svc_rows if r[5] is not None)
     if svc_rows:
@@ -142,13 +174,13 @@ def run_cert_transparency(
 
     conn.close()
     log.info(
-        "CT: %d domains, %d recent certs, %d unique hostnames resolved, %d corpus matches",
-        len(domains), total_certs, len(seen_hostnames), matches,
+        "CT: %d domains, %d recent certs, %d unique hostnames, %d rows, %d corpus matches",
+        len(domains), total_certs, len(hostname_to_domain), len(svc_rows), matches,
     )
     return {
         "domains_checked": len(domains),
         "certs_found": total_certs,
-        "hostnames_resolved": len(seen_hostnames),
+        "hostnames_resolved": len(hostname_to_domain),
         "rows_inserted": len(svc_rows),
         "matches": matches,
     }

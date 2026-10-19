@@ -26,7 +26,7 @@ jobs:
   cert-transparency:
     name: Certificate Transparency enrichment
     runs-on: ubuntu-latest
-    timeout-minutes: 120    # crt.sh queries can take a while for large .gov sets
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
