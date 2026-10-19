@@ -1,38 +1,38 @@
 """
-RIPE Atlas enrichment pipeline
-================================
-Uses RIPE Atlas to discover live IPv6 addresses within USG-allocated
-prefixes that evade ICMP-based probing (TU Munich hitlist, CAIDA Ark)
-due to firewall policy.
+RIPE Atlas enrichment pipeline — deferred collection architecture
+=================================================================
+Measurement submission and result collection are intentionally separated
+into two functions that run in different weekly workflow invocations:
+
+  submit_prefix_sweep()      — creates Atlas measurements, writes their IDs
+                               to atlas_pending_measurements, returns immediately.
+                               No in-process wait; no CI timeout risk.
+
+  collect_pending_results()  — reads uncollected IDs from the table, fetches
+                               results (Atlas guarantees completion within minutes;
+                               a week is more than enough), stores observations.
+
+  run_prefix_sweep()         — convenience wrapper: collect first, then submit.
+                               Each weekly run harvests last week's measurements
+                               and queues this week's batch.
 
 Strategy
 --------
 Per run (bounded by prefix_batch_size):
 
-1. Select the N oldest-probed corpus IPv6 prefixes (those never probed
-   come first, then those probed longest ago), so full corpus coverage
-   accumulates over successive weekly runs.
-2. Generate candidate target addresses per prefix (low-numbered host-part
-   offsets plus seeds from domain_services / hitlist_addresses).
-3. Batch-submit all measurements concurrently (ThreadPoolExecutor).
-4. Sleep once for wait_minutes (default 15) while Atlas runs all probes.
-5. Batch-fetch all results concurrently.
-6. Parse and store: atlas_observations (per target/type response) and
-   atlas_hop_addresses (router addresses found inside corpus prefixes
-   via traceroute hop extraction).
+1. collect_pending_results: fetch + parse + store all measurements submitted
+   in prior run(s); mark them collected.
+2. submit_prefix_sweep: select the N oldest-probed corpus IPv6 prefixes,
+   generate candidate target addresses, submit all measurements concurrently
+   (ThreadPoolExecutor), write IDs to atlas_pending_measurements, return.
 
-This three-phase approach completes in wall-clock time proportional to
-wait_minutes + network overhead, regardless of measurement count —
-avoiding the sequential create-poll-store loop that causes CI timeouts.
-
-Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping+trace):
-  100 × 5 × 5 × (1 + 10) = 27,500 credits per run
-  530 prefixes cycled at 100/week ≈ 6 weeks for full corpus coverage.
+Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping only):
+  100 x 5 x 5 x 1 = 2,500 credits per run.
+  530 prefixes cycled at 100/week = 6 weeks for full corpus coverage.
 
 API key
 -------
-Requires RIPE_ATLAS_API_KEY with "Create User Defined Measurements" scope.
-Set as a GitHub Actions secret named RIPE_ATLAS_API_KEY.
+Requires RIPE_ATLAS_API_KEY with "Create measurements" scope.
 """
 
 import ipaddress
@@ -40,7 +40,6 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_cls
-from typing import Iterator
 
 import requests
 
@@ -48,38 +47,31 @@ log = logging.getLogger(__name__)
 
 ATLAS_BASE = "https://atlas.ripe.net/api/v2"
 
-# Measurement types available.
-# Each entry: (label, atlas_type, extra_params, credits_per_probe)
 _MEASUREMENT_SPECS: list[tuple[str, str, dict, int]] = [
-    ("ping",      "ping",       {"af": 6, "packets": 3},                                 1),
+    ("ping",      "ping",       {"af": 6, "packets": 3},                                1),
     ("tcp_443",   "traceroute", {"af": 6, "protocol": "TCP", "paris": 0,
-                                 "response_timeout": 4000, "size": 0},                  10),
+                                 "response_timeout": 4000, "size": 0},                 10),
     ("tcp_80",    "traceroute", {"af": 6, "protocol": "TCP", "paris": 0,
-                                 "response_timeout": 4000, "size": 0},                  10),
+                                 "response_timeout": 4000, "size": 0},                 10),
     ("tcp_53",    "traceroute", {"af": 6, "protocol": "TCP", "paris": 0,
-                                 "response_timeout": 4000, "size": 0},                  10),
+                                 "response_timeout": 4000, "size": 0},                 10),
     ("traceroute","traceroute", {"af": 6, "protocol": "ICMP", "paris": 16,
-                                 "response_timeout": 4000, "size": 0, "max_hops": 32},  10),
+                                 "response_timeout": 4000, "size": 0, "max_hops": 32}, 10),
 ]
 
 _TCP_PORTS = {"tcp_443": 443, "tcp_80": 80, "tcp_53": 53}
 
-# Default measurement types: ping finds open hosts, traceroute finds router
-# hops even through firewalls.  TCP types are opt-in for deeper sweeps.
-_DEFAULT_LABELS = ["ping", "traceroute"]
+_DEFAULT_LABELS = ["ping"]
 
 # Low-numbered host-part offsets to probe per prefix.
-# Covers routers (::1, ::2), anycast (::a), DNS (::53), NTP (::7b), etc.
 _PROBE_OFFSETS = [1, 2, 0xa, 0x10, 0x53]
 
-# Max concurrent HTTP workers for submission and result fetching.
 _HTTP_WORKERS = 8
 
 
 # ── Target generation ─────────────────────────────────────────────────────────
 
 def _generate_targets(prefix: str, extra_addrs: list[str] | None = None) -> list[str]:
-    """Return candidate IPv6 addresses to probe within a prefix."""
     try:
         net = ipaddress.ip_network(prefix, strict=False)
     except ValueError:
@@ -111,7 +103,6 @@ def _generate_targets(prefix: str, extra_addrs: list[str] | None = None) -> list
 
 
 def _corpus_extra_addresses(conn) -> dict[str, list[str]]:
-    """Return {prefix: [addr, ...]} from domain_services and hitlist_addresses."""
     result: dict[str, list[str]] = {}
     for query in (
         "SELECT ipv6_address, matched_prefix FROM domain_services WHERE matched_prefix IS NOT NULL",
@@ -133,7 +124,6 @@ def _get_probes(
     country_code: str = "US",
     limit: int = 5,
 ) -> list[int]:
-    """Return Atlas probe IDs: connected, IPv6-capable, in the requested country."""
     params: dict = {
         "country_code": country_code,
         "status": 1,
@@ -178,7 +168,6 @@ def _create_measurement(
     probe_ids: list[int],
     extra: dict,
 ) -> int | None:
-    """Create a one-off Atlas measurement; return its ID or None on failure."""
     port = _TCP_PORTS.get(label)
     defn: dict = {
         "type": msm_type,
@@ -208,7 +197,7 @@ def _create_measurement(
         )
         r.raise_for_status()
         msm_id = r.json()["measurements"][0]
-        log.debug("Created %s → msm %s", label, msm_id)
+        log.debug("Created %s -> msm %s", label, msm_id)
         return msm_id
     except Exception as exc:
         log.warning("Atlas create failed (%s %s): %s", label, target, exc)
@@ -218,7 +207,6 @@ def _create_measurement(
 # ── Result fetching ───────────────────────────────────────────────────────────
 
 def _fetch_results(api_key: str, msm_id: int) -> list[dict]:
-    """Fetch results for a completed measurement (no polling — caller waits)."""
     try:
         r = requests.get(
             f"{ATLAS_BASE}/measurements/{msm_id}/results/",
@@ -229,7 +217,7 @@ def _fetch_results(api_key: str, msm_id: int) -> list[dict]:
         r.raise_for_status()
         return r.json()
     except Exception as exc:
-        log.warning("Atlas fetch failed for %s: %s", msm_id, exc)
+        log.warning("Atlas fetch failed for msm %s: %s", msm_id, exc)
         return []
 
 
@@ -266,7 +254,6 @@ def _parse_traceroute_hops(
     results: list[dict],
     corpus_nets: list[tuple],
 ) -> set[str]:
-    """Extract hop addresses within corpus prefixes from traceroute results."""
     found: set[str] = set()
     for r in results:
         for hop in r.get("result", []):
@@ -329,9 +316,9 @@ def estimate_credits(
     return prefix_count * targets_per_prefix * probe_count * cost_per_target
 
 
-# ── Main sweep ────────────────────────────────────────────────────────────────
+# ── Phase 1: submit ───────────────────────────────────────────────────────────
 
-def run_prefix_sweep(
+def submit_prefix_sweep(
     db_path: str,
     api_key: str,
     observation_date: date_cls | None = None,
@@ -339,25 +326,17 @@ def run_prefix_sweep(
     country_code: str = "US",
     measurement_labels: list[str] | None = None,
     prefix_batch_size: int = 100,
-    wait_minutes: int = 15,
     dry_run: bool = False,
 ) -> dict:
     """
-    Sweep a batch of corpus IPv6 prefixes with Atlas measurements.
+    Submit Atlas measurements for a batch of corpus IPv6 prefixes.
 
-    Selects the oldest-probed prefixes first so full corpus coverage
-    accumulates across successive weekly runs.  Submits all measurements
-    concurrently, waits once (wait_minutes), then fetches all results
-    concurrently.  Completes in wall-clock time ≈ wait_minutes + network
-    overhead, regardless of measurement count.
+    Selects the oldest-probed prefixes first, generates candidate targets,
+    submits all measurements concurrently via ThreadPoolExecutor, and writes
+    measurement IDs to atlas_pending_measurements.  Returns immediately --
+    no sleeping, no waiting for Atlas results.
 
-    Parameters
-    ----------
-    probe_count       Atlas probes per measurement (default 5).
-    prefix_batch_size Prefixes to sweep per run (default 100).
-    wait_minutes      Fixed wait after submitting all measurements (default 15).
-    measurement_labels  Labels to run; default: ["ping", "traceroute"].
-    dry_run           Estimate credits without creating any measurements.
+    Call collect_pending_results() in the next workflow run to harvest results.
     """
     from usg_ipv6.db import get_connection, init_schema
 
@@ -368,10 +347,8 @@ def run_prefix_sweep(
     conn = get_connection(db_path)
     init_schema(conn)
 
-    corpus_nets = _build_corpus_nets(conn)
     extra_by_prefix = _corpus_extra_addresses(conn)
 
-    # Select oldest-probed prefixes: never-probed first, then by last observation.
     prefix_rows = conn.execute("""
         SELECT c.prefix, c.asn, MAX(ao.observation_date) AS last_probed
         FROM caida_pfx2as c
@@ -387,21 +364,22 @@ def run_prefix_sweep(
     all_targets: list[tuple[str, str, int]] = []
     for pfx, asn, _last in prefix_rows:
         for target in _generate_targets(pfx, extra_by_prefix.get(pfx)):
-            all_targets.append((target, pfx, asn))
+            all_targets.append((target, pfx, int(asn)))
 
     est = estimate_credits(len(prefix_rows), len(_PROBE_OFFSETS), probe_count, labels)
     log.info(
-        "Atlas sweep: %d prefixes, %d targets, %d probes, types=%s — est. %d credits",
+        "Atlas submit: %d prefixes, %d targets, %d probes, types=%s, est. %d credits",
         len(prefix_rows), len(all_targets), probe_count, labels, est,
     )
 
     if dry_run:
         conn.close()
         return {
+            "phase": "submit",
             "prefixes": len(prefix_rows),
             "targets": len(all_targets),
             "estimated_credits": est,
-            "measurements_created": 0,
+            "measurements_submitted": 0,
             "dry_run": True,
         }
 
@@ -409,54 +387,103 @@ def run_prefix_sweep(
     if not probe_ids:
         conn.close()
         log.error("No Atlas probes found for country_code=%s", country_code)
-        return {"error": "no_probes", "country_code": country_code}
+        return {"phase": "submit", "error": "no_probes"}
 
-    # ── Phase 1: submit all measurements concurrently ──────────────────────────
-    # Maps (target, label) → msm_id for the fetch phase.
-    pending: dict[tuple[str, str], int] = {}
-
-    def _submit(target: str, pfx: str, asn: int, label: str) -> tuple[str, str, int | None]:
+    def _submit(target: str, pfx: str, asn: int, label: str):
         msm_type, extra, _ = specs[label]
         msm_id = _create_measurement(api_key, label, msm_type, target, probe_ids, extra)
-        return target, label, msm_id
+        return target, pfx, asn, label, msm_id
 
     work = [(t, p, a, l) for t, p, a in all_targets for l in labels]
+    pending_rows: list[tuple] = []
+
     with ThreadPoolExecutor(max_workers=_HTTP_WORKERS) as pool:
-        futures = {pool.submit(_submit, t, p, a, l): (t, p, a) for t, p, a, l in work}
+        futures = {pool.submit(_submit, t, p, a, l): None for t, p, a, l in work}
         for fut in as_completed(futures):
-            target, pfx, asn = futures[fut]
             try:
-                t, label, msm_id = fut.result()
+                target, pfx, asn, label, msm_id = fut.result()
                 if msm_id is not None:
-                    pending[(t, label)] = msm_id
+                    pending_rows.append(
+                        (msm_id, obs_date, target, pfx, asn, label, len(probe_ids), False)
+                    )
             except Exception as exc:
-                log.warning("Submit error for %s: %s", target, exc)
+                log.warning("Submit error: %s", exc)
 
-    log.info("Submitted %d measurements; waiting %d min for completion…",
-             len(pending), wait_minutes)
+    if pending_rows:
+        conn.executemany(
+            "INSERT OR REPLACE INTO atlas_pending_measurements VALUES (?,?,?,?,?,?,?,?)",
+            pending_rows,
+        )
 
-    # ── Phase 2: wait once for all measurements to complete ───────────────────
-    time.sleep(wait_minutes * 60)
+    conn.close()
+    log.info("Submitted %d measurements; IDs stored for deferred collection.", len(pending_rows))
+    return {
+        "phase": "submit",
+        "prefixes": len(prefix_rows),
+        "targets": len(all_targets),
+        "estimated_credits": est,
+        "measurements_submitted": len(pending_rows),
+    }
 
-    # ── Phase 3: fetch all results concurrently ───────────────────────────────
-    # Build a lookup from msm_id back to (target, label, prefix, asn).
-    msm_meta: dict[int, tuple[str, str, str, int]] = {}
-    for (target, label), msm_id in pending.items():
-        # Find prefix/asn for this target
-        pfx_match, asn_match = _match_corpus(target, corpus_nets)
-        if pfx_match is None:
-            # Fall back to the prefix row we generated from
-            for t2, p2, a2 in all_targets:
-                if t2 == target:
-                    pfx_match, asn_match = p2, a2
-                    break
-        if pfx_match and asn_match:
-            msm_meta[msm_id] = (target, label, pfx_match, asn_match)
+
+# ── Phase 2: collect ──────────────────────────────────────────────────────────
+
+def collect_pending_results(
+    db_path: str,
+    api_key: str,
+    max_age_days: int = 14,
+) -> dict:
+    """
+    Fetch Atlas results for all uncollected pending measurements and store
+    observations.  Designed to run one week after submit_prefix_sweep().
+    Atlas one-off measurements complete within minutes; after a week all
+    results are guaranteed to be available.
+
+    Measurements older than max_age_days are expired without fetching
+    (Atlas deletes old result data) and marked collected to prevent
+    accumulation.
+    """
+    from usg_ipv6.db import get_connection, init_schema
+
+    conn = get_connection(db_path)
+    init_schema(conn)
+
+    pending = conn.execute("""
+        SELECT msm_id, submitted_date, target_address, matched_prefix,
+               origin_asn, measurement_type, probe_count
+        FROM atlas_pending_measurements
+        WHERE collected = FALSE
+        ORDER BY submitted_date
+    """).fetchall()
+
+    if not pending:
+        conn.close()
+        log.info("Atlas collect: no pending measurements.")
+        return {"phase": "collect", "pending": 0, "collected": 0, "expired": 0}
+
+    today = date_cls.today()
+    active, expired_ids = [], []
+    for row in pending:
+        msm_id, submitted_date, *_ = row
+        try:
+            age = (today - submitted_date).days
+        except Exception:
+            age = 999
+        if age > max_age_days:
+            expired_ids.append(msm_id)
+        else:
+            active.append(row)
+
+    log.info(
+        "Atlas collect: %d pending (%d active, %d expired)",
+        len(pending), len(active), len(expired_ids),
+    )
+
+    corpus_nets = _build_corpus_nets(conn)
 
     raw_results: dict[int, list[dict]] = {}
     with ThreadPoolExecutor(max_workers=_HTTP_WORKERS) as pool:
-        futures = {pool.submit(_fetch_results, api_key, msm_id): msm_id
-                   for msm_id in msm_meta}
+        futures = {pool.submit(_fetch_results, api_key, row[0]): row[0] for row in active}
         for fut in as_completed(futures):
             msm_id = futures[fut]
             try:
@@ -465,14 +492,14 @@ def run_prefix_sweep(
                 log.warning("Fetch error for msm %s: %s", msm_id, exc)
                 raw_results[msm_id] = []
 
-    # ── Phase 4: parse and store ──────────────────────────────────────────────
     obs_rows: list[tuple] = []
     hop_rows: list[tuple] = []
+    collected_ids: list[int] = list(expired_ids)
 
-    for msm_id, results in raw_results.items():
-        if msm_id not in msm_meta:
-            continue
-        target, label, pfx, asn = msm_meta[msm_id]
+    for row in active:
+        msm_id, submitted_date, target, pfx, asn, label, probe_count = row
+        results = raw_results.get(msm_id, [])
+        collected_ids.append(msm_id)
 
         if label == "ping":
             responding, rtt = _parse_ping(results)
@@ -482,13 +509,13 @@ def run_prefix_sweep(
             responding, rtt = _parse_tcp(results)
             for hop_addr in _parse_traceroute_hops(results, corpus_nets):
                 hop_pfx, hop_asn = _match_corpus(hop_addr, corpus_nets)
-                hop_rows.append((obs_date, hop_addr, hop_pfx, hop_asn, target, msm_id))
+                hop_rows.append((submitted_date, hop_addr, hop_pfx, hop_asn, target, msm_id))
         else:
             continue
 
         obs_rows.append((
-            obs_date, target, pfx, asn, label,
-            responding > 0, rtt, len(probe_ids), responding, msm_id,
+            submitted_date, target, pfx, asn, label,
+            responding > 0, rtt, probe_count, responding, msm_id,
         ))
 
     if obs_rows:
@@ -501,6 +528,15 @@ def run_prefix_sweep(
             "INSERT OR REPLACE INTO atlas_hop_addresses VALUES (?,?,?,?,?,?)",
             hop_rows,
         )
+
+    if collected_ids:
+        placeholders = ",".join("?" * len(collected_ids))
+        conn.execute(
+            f"UPDATE atlas_pending_measurements SET collected = TRUE "
+            f"WHERE msm_id IN ({placeholders})",
+            collected_ids,
+        )
+
     conn.close()
 
     responsive = sum(1 for r in obs_rows if r[5])
@@ -508,20 +544,48 @@ def run_prefix_sweep(
     unique_hops = len({r[1] for r in hop_rows})
 
     log.info(
-        "Sweep done: %d measurements, %d/%d responsive, "
-        "%d unique responsive addresses, %d unique hop addresses",
-        len(pending), responsive, len(obs_rows), unique_responsive, unique_hops,
+        "Atlas collect done: %d observations, %d/%d responsive, %d hop addresses",
+        len(obs_rows), responsive, len(obs_rows), unique_hops,
     )
     return {
-        "prefixes": len(prefix_rows),
-        "targets": len(all_targets),
-        "measurements_created": len(pending),
+        "phase": "collect",
+        "pending": len(pending),
+        "collected": len(collected_ids) - len(expired_ids),
+        "expired": len(expired_ids),
         "observations": len(obs_rows),
         "responsive_observations": responsive,
         "unique_responsive_addresses": unique_responsive,
         "unique_hop_addresses": unique_hops,
     }
 
+
+# ── Combined entry point ──────────────────────────────────────────────────────
+
+def run_prefix_sweep(
+    db_path: str,
+    api_key: str,
+    observation_date: date_cls | None = None,
+    probe_count: int = 5,
+    country_code: str = "US",
+    measurement_labels: list[str] | None = None,
+    prefix_batch_size: int = 100,
+    dry_run: bool = False,
+) -> dict:
+    """Collect pending results from the previous run, then submit a new batch."""
+    collected = collect_pending_results(db_path, api_key)
+    submitted = submit_prefix_sweep(
+        db_path, api_key,
+        observation_date=observation_date,
+        probe_count=probe_count,
+        country_code=country_code,
+        measurement_labels=measurement_labels,
+        prefix_batch_size=prefix_batch_size,
+        dry_run=dry_run,
+    )
+    return {"collect": collected, "submit": submitted}
+
+
+# ── DNS AAAA enrichment ───────────────────────────────────────────────────────
 
 def run_ripe_atlas_dns(
     db_path: str,
@@ -566,7 +630,6 @@ def run_ripe_atlas_dns(
         conn.close()
         return {"targets": len(targets), "measurements": 0, "new_matches": 0}
 
-    # Submit all DNS measurements concurrently
     def _submit_dns(hostname: str) -> tuple[str, int | None]:
         payload = {
             "definitions": [{
@@ -605,7 +668,7 @@ def run_ripe_atlas_dns(
             if msm_id is not None:
                 pending_dns[hostname] = msm_id
 
-    time.sleep(5 * 60)  # DNS measurements complete quickly
+    time.sleep(5 * 60)
 
     new_matches = 0
     for hostname, msm_id in pending_dns.items():

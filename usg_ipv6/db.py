@@ -232,3 +232,15 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (observation_date, hop_address, probe_target)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS atlas_pending_measurements (
+            msm_id           BIGINT  NOT NULL PRIMARY KEY,
+            submitted_date   DATE    NOT NULL,
+            target_address   VARCHAR NOT NULL,
+            matched_prefix   VARCHAR NOT NULL,
+            origin_asn       BIGINT  NOT NULL,
+            measurement_type VARCHAR NOT NULL,
+            probe_count      INTEGER NOT NULL,
+            collected        BOOLEAN NOT NULL DEFAULT FALSE
+        )
+    """)
