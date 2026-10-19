@@ -33,9 +33,9 @@ on:
         default: ''
         type: string
       collector:
-        description: RouteViews collector (e.g. route-views2, route-views6)
+        description: RouteViews collector (route-views6 = IPv6-only peers; route-views2 = mixed)
         required: false
-        default: route-views2
+        default: route-views6
         type: string
       sample:
         description: Snapshot cadence — all (every 2 h), quarterly, monthly, annual
