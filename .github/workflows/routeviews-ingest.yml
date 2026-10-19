@@ -1,8 +1,9 @@
 name: RouteViews MRT Ingest
 
-# Downloads BGP MRT RIB dumps from a RouteViews collector, parses
+# Downloads BGP MRT RIB dumps from RouteViews collectors, parses
 # TABLE_DUMP_V2 records, filters to USG-corpus ASNs, and stores
-# IPv4/IPv6 prefix records in DuckDB.
+# IPv4/IPv6 prefix records in DuckDB.  Both route-views2 (general) and
+# route-views6 (IPv6-only peers) are ingested every scheduled run.
 #
 # Full pipeline:
 #   1. Reload USG ASN corpus from committed CSV  → asn_corpus table
@@ -165,7 +166,7 @@ jobs:
           conn.close()
           PYEOF
 
-      - name: Fetch and parse RouteViews MRT RIB snapshots
+      - name: Fetch and parse RouteViews MRT RIB snapshots (route-views2, IPv4+IPv6)
         # run_incremental downloads each RIB dump (.bz2), parses TABLE_DUMP_V2
         # entries with mrtparse, writes a Parquet file, then normalises prefix
         # records into DuckDB.  Already-processed snapshots are skipped.
@@ -193,6 +194,35 @@ jobs:
               print(f"Ingested {result['processed']} MRT RIB snapshot(s) for {collector}")
           PYEOF
 
+      - name: Fetch and parse RouteViews MRT RIB snapshots (route-views6, IPv6-only)
+        # route-views6 is a dedicated IPv6 collector — peers with IPv6-only sessions.
+        # Runs unconditionally after route-views2 so both collectors are always
+        # ingested on the weekly schedule.  Skipped when the manual-dispatch
+        # collector input is already route-views6 (idempotent but avoids double-work).
+        if: ${{ inputs.collector != 'route-views6' }}
+        env:
+          LIMIT: ${{ inputs.limit || '6' }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os, sys
+          from usg_ipv6.pipeline.runner import run_incremental
+
+          limit  = int(os.environ['LIMIT'])
+          collector = 'route-views6'
+
+          print(f"Collector: {collector}  limit: {limit} snapshots")
+          result = run_incremental('data/usg_ipv6.duckdb', collector, limit=limit)
+          print(json.dumps(result, indent=2))
+          if result['processed'] == 0:
+              print(
+                  'WARNING: 0 new snapshots processed — '
+                  'collector may be fully caught up or unreachable',
+                  file=sys.stderr,
+              )
+          else:
+              print(f"Ingested {result['processed']} MRT RIB snapshot(s) for {collector}")
+          PYEOF
+
       - name: Upload updated DuckDB to rolling release
         # if: always() preserves corpus + pfx2as progress even if MRT parsing fails
         if: always()
@@ -202,5 +232,5 @@ jobs:
           gh release upload data-latest data/usg_ipv6.duckdb --clobber \
           || gh release create data-latest data/usg_ipv6.duckdb \
                --title "Data: $(date +%Y-%m-%d)" \
-               --notes "Rolling data release — latest RouteViews MRT snapshots for ${{ inputs.collector || 'route-views2' }}." \
+               --notes "Rolling data release — RouteViews MRT snapshots (route-views2 + route-views6)." \
                --prerelease
