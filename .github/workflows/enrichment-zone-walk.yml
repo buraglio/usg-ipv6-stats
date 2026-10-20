@@ -1,0 +1,170 @@
+name: DNS Zone Walk Enrichment
+
+# Enumerates FQDNs in DNSSEC-signed .gov zones via NSEC zone-walking and
+# AXFR zone-transfer attempts, then resolves AAAA records to discover active
+# IPv6 hosts on corpus networks.
+#
+# Three-phase pipeline per zone (see usg_ipv6/pipeline/zone_walk.py):
+#   1. AXFR attempt   — complete zone if permitted (security finding).
+#   2. Zone classify  — NSEC / NSEC3 / unsigned detection.
+#   3. NSEC walk      — complete FQDN enumeration for NSEC zones.
+#   4. Wordlist enum  — ~120 federal-context labels for NSEC3 / unsigned zones.
+#   5. AAAA resolve   — concurrent resolution of all discovered FQDNs.
+#
+# Motivation: draft-fbw-dnsop-dnszonehop identifies zone-walking as the
+# primary IPv6 address discovery vector for federal networks under OMB M-21-07.
+# NSEC-signed zones expose every configured hostname, including management
+# interfaces and VPN concentrators invisible to ICMP hitlists.
+#
+# Zone names and FQDNs are stored in zone_walk_meta / zone_walk_hosts.
+# Only aggregate counts appear on the public dashboard.
+#
+# Credit / cost: DNS queries only — no Atlas credits, no external API keys.
+
+on:
+  schedule:
+    - cron: '0 14 * * 3'   # Wednesday 14:00 UTC (mid-week, off-peak)
+  workflow_dispatch:
+    inputs:
+      domain_limit:
+        description: |
+          Maximum .gov domains to scan (blank = all ~1,200).
+          Use a small number (e.g. 50) for test runs.
+        required: false
+        default: ''
+        type: string
+      observation_date:
+        description: Override scan date (YYYY-MM-DD). Leave blank for today.
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  zone-walk:
+    name: DNS zone-walk enrichment
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/ || true
+
+      - name: Ensure CAIDA pfx2as IPv6 data is present
+        run: |
+          uv run python << 'PYEOF'
+          from usg_ipv6.db import get_connection, init_schema
+          from usg_ipv6.pipeline.caida_pfx2as import download_pfx2as, load_pfx2as
+          from datetime import date
+          import sys
+
+          today = date.today()
+          month_start = today.replace(day=1).isoformat()
+
+          conn = get_connection('data/usg_ipv6.duckdb')
+          init_schema(conn)
+
+          existing = conn.execute(
+              "SELECT COUNT(*) FROM caida_pfx2as WHERE af = 6 AND snapshot_date >= ?",
+              [month_start],
+          ).fetchone()[0]
+
+          if existing > 0:
+              print(f"CAIDA pfx2as IPv6 present ({existing:,} rows) — OK")
+              conn.close()
+              sys.exit(0)
+
+          print("Fetching CAIDA pfx2as rv6...", file=sys.stderr)
+          downloaded = None
+          for days_back in range(8):
+              attempt = date.fromordinal(today.toordinal() - days_back)
+              try:
+                  downloaded = download_pfx2as('data/raw', attempt.isoformat(), 'rv6')
+                  print(f"Downloaded rv6 for {attempt.isoformat()}")
+                  break
+              except Exception as e:
+                  print(f"  {attempt.isoformat()} rv6: {e}", file=sys.stderr)
+
+          if downloaded is None:
+              print("ERROR: Could not download rv6 pfx2as.", file=sys.stderr)
+              conn.close()
+              sys.exit(1)
+
+          n = load_pfx2as(downloaded, today.isoformat(), conn)
+          print(f"Loaded {n:,} IPv6 pfx2as records")
+          conn.close()
+          PYEOF
+
+      - name: Run DNS zone-walk enrichment
+        env:
+          INPUT_DOMAIN_LIMIT:     ${{ inputs.domain_limit }}
+          INPUT_OBSERVATION_DATE: ${{ inputs.observation_date }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os, sys
+          from datetime import date
+          from usg_ipv6.pipeline.zone_walk import run_zone_walk
+
+          limit_str  = os.environ.get("INPUT_DOMAIN_LIMIT", "").strip()
+          limit      = int(limit_str) if limit_str else None
+          date_str   = os.environ.get("INPUT_OBSERVATION_DATE", "").strip()
+          scan_date  = date.fromisoformat(date_str) if date_str else None
+
+          result = run_zone_walk(
+              db_path="data/usg_ipv6.duckdb",
+              scan_date=scan_date,
+              domain_limit=limit,
+          )
+          print(json.dumps(result, indent=2))
+          print()
+          print(f"Zones:       {result['domains_processed']:,} processed  "
+                f"({result['nsec_zones']} NSEC-walkable, "
+                f"{result['nsec3_zones']} NSEC3, "
+                f"{result['unsigned_zones']} unsigned, "
+                f"{result['axfr_zones']} AXFR-permitted)")
+          print(f"FQDNs:       {result['names_discovered']:,} discovered  "
+                f"→ {result['aaaa_resolved']:,} with AAAA")
+          print(f"Corpus hits: {result['unique_corpus_addresses']:,} unique IPv6 "
+                f"addresses in corpus prefixes")
+          if result['axfr_zones']:
+              print(f"SECURITY:    {result['axfr_zones']} zone(s) permitted AXFR "
+                    f"(unrestricted zone transfer)")
+          PYEOF
+
+      - name: Upload updated DuckDB to rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then
+            echo "No DuckDB to upload."
+            exit 0
+          fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "Zone walk enrichment." \
+               --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true

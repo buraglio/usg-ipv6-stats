@@ -466,6 +466,37 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                     "prefixes": row[2], "blackhole": row[3],
                 }
 
+        if "zone_walk_meta" in tables:
+            row = conn.execute("""
+                SELECT scan_date::VARCHAR,
+                       COUNT(*)                                        AS domains,
+                       COUNT(*) FILTER (WHERE zone_type = 'nsec')     AS nsec_zones,
+                       COUNT(*) FILTER (WHERE zone_type = 'nsec3')    AS nsec3_zones,
+                       COUNT(*) FILTER (WHERE zone_type = 'axfr')     AS axfr_zones,
+                       COUNT(*) FILTER (WHERE zone_type = 'unsigned') AS unsigned_zones,
+                       SUM(names_discovered)                           AS total_names,
+                       SUM(corpus_matched)                             AS corpus_matched
+                FROM zone_walk_meta
+                WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_meta)
+                GROUP BY scan_date
+            """).fetchone()
+            if row:
+                enrich["zone_walk"] = {
+                    "date": row[0], "domains": row[1],
+                    "nsec_zones": row[2] or 0, "nsec3_zones": row[3] or 0,
+                    "axfr_zones": row[4] or 0, "unsigned_zones": row[5] or 0,
+                    "total_names": row[6] or 0, "corpus_matched": row[7] or 0,
+                }
+            if "zone_walk_hosts" in tables:
+                addr_row = conn.execute("""
+                    SELECT COUNT(DISTINCT ipv6_address)
+                           FILTER (WHERE matched_prefix IS NOT NULL)
+                    FROM zone_walk_hosts
+                    WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_hosts)
+                """).fetchone()
+                if addr_row and "zone_walk" in enrich:
+                    enrich["zone_walk"]["unique_corpus_addrs"] = addr_row[0] or 0
+
         if enrich:
             enrichment_data = enrich
     except Exception:
@@ -1257,6 +1288,13 @@ def _enrichment_section(data: dict | None) -> str:
                "Standard and large BGP communities extracted from MRT RIB entries per ingest. "
                "Identifies blackhole-tagged and traffic-engineered prefixes.",
                "<strong>Cadence:</strong> Per BGP ingest · <strong>Table:</strong> <code>bgp_communities</code>"),
+        _ecard("#6639ba", "DNS Zone Walk",
+               "NSEC zone-walk, AXFR attempt, and wordlist enumeration for all .gov zones. "
+               "Discovers IPv6 hosts invisible to ICMP hitlists. "
+               "AXFR-permitted zones are a security finding. "
+               "Zone names stored in DB only — aggregate counts shown here.",
+               "<strong>Cadence:</strong> Weekly · <strong>Tables:</strong> "
+               "<code>zone_walk_meta</code>, <code>zone_walk_hosts</code>"),
     ])
 
     if data is None:
@@ -1319,6 +1357,22 @@ def _enrichment_section(data: dict | None) -> str:
                                 f"{comm['unique']:,}",
                                 f"unique communities on {comm['prefixes']:,} prefixes · "
                                 f"{bh_label} ({comm['date']})"))
+
+    zw = data.get("zone_walk")
+    if zw:
+        axfr_note = (f"{zw['axfr_zones']} AXFR-permitted · " if zw["axfr_zones"] else "")
+        zw_cls = "indet" if zw["axfr_zones"] else "ok"
+        stat_cards.append(_card(
+            zw_cls, "DNS Zone Walk",
+            f"{zw.get('unique_corpus_addrs', 0):,}",
+            f"IPv6 addresses in corpus · {axfr_note}"
+            f"{zw['nsec_zones']} NSEC-walkable · "
+            f"{zw['nsec3_zones']} NSEC3 · "
+            f"{zw['unsigned_zones']} unsigned "
+            f"of {zw['domains']:,} .gov zones · "
+            f"{zw['total_names']:,} FQDNs enumerated "
+            f"({zw['date']})"
+        ))
 
     src_rows = data.get("domain_sources", [])
     if src_rows:

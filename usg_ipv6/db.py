@@ -244,3 +244,28 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             collected        BOOLEAN NOT NULL DEFAULT FALSE
         )
     """)
+    # ── DNS zone-walk enrichment tables ──────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS zone_walk_meta (
+            scan_date        DATE    NOT NULL,
+            domain           VARCHAR NOT NULL,
+            zone_type        VARCHAR NOT NULL,
+            axfr_permitted   BOOLEAN NOT NULL DEFAULT FALSE,
+            names_discovered INTEGER NOT NULL DEFAULT 0,
+            aaaa_resolved    INTEGER NOT NULL DEFAULT 0,
+            corpus_matched   INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (scan_date, domain)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS zone_walk_hosts (
+            scan_date        DATE    NOT NULL,
+            domain           VARCHAR NOT NULL,
+            hostname         VARCHAR NOT NULL,
+            ipv6_address     VARCHAR NOT NULL,
+            matched_prefix   VARCHAR,
+            matched_asn      BIGINT,
+            discovery_method VARCHAR NOT NULL,
+            PRIMARY KEY (scan_date, hostname, ipv6_address)
+        )
+    """)
