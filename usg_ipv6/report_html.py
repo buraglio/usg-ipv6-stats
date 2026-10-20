@@ -474,7 +474,9 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                        COUNT(*) FILTER (WHERE zone_type = 'nsec3')    AS nsec3_zones,
                        COUNT(*) FILTER (WHERE zone_type = 'axfr')     AS axfr_zones,
                        COUNT(*) FILTER (WHERE zone_type = 'unsigned') AS unsigned_zones,
+                       COUNT(*) FILTER (WHERE zone_type = 'error')    AS error_zones,
                        SUM(names_discovered)                           AS total_names,
+                       SUM(aaaa_resolved)                              AS total_aaaa,
                        SUM(corpus_matched)                             AS corpus_matched
                 FROM zone_walk_meta
                 WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_meta)
@@ -485,8 +487,28 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                     "date": row[0], "domains": row[1],
                     "nsec_zones": row[2] or 0, "nsec3_zones": row[3] or 0,
                     "axfr_zones": row[4] or 0, "unsigned_zones": row[5] or 0,
-                    "total_names": row[6] or 0, "corpus_matched": row[7] or 0,
+                    "error_zones": row[6] or 0,
+                    "total_names": row[7] or 0, "total_aaaa": row[8] or 0,
+                    "corpus_matched": row[9] or 0,
                 }
+            # Per-zone-type breakdown for the detail block
+            type_rows = conn.execute("""
+                SELECT zone_type,
+                       COUNT(*)              AS zones,
+                       SUM(names_discovered) AS names,
+                       SUM(aaaa_resolved)    AS aaaa,
+                       SUM(corpus_matched)   AS corpus
+                FROM zone_walk_meta
+                WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_meta)
+                GROUP BY zone_type
+                ORDER BY names DESC
+            """).fetchall()
+            if type_rows and "zone_walk" in enrich:
+                enrich["zone_walk"]["type_rows"] = [
+                    {"zone_type": r[0], "zones": r[1],
+                     "names": r[2] or 0, "aaaa": r[3] or 0, "corpus": r[4] or 0}
+                    for r in type_rows
+                ]
             if "zone_walk_hosts" in tables:
                 addr_row = conn.execute("""
                     SELECT COUNT(DISTINCT ipv6_address)
@@ -1360,17 +1382,18 @@ def _enrichment_section(data: dict | None) -> str:
 
     zw = data.get("zone_walk")
     if zw:
-        axfr_note = (f"{zw['axfr_zones']} AXFR-permitted · " if zw["axfr_zones"] else "")
+        axfr_note = (f"⚠ {zw['axfr_zones']} AXFR-permitted · " if zw["axfr_zones"] else "")
         zw_cls = "indet" if zw["axfr_zones"] else "ok"
         stat_cards.append(_card(
             zw_cls, "DNS Zone Walk",
             f"{zw.get('unique_corpus_addrs', 0):,}",
-            f"IPv6 addresses in corpus · {axfr_note}"
+            f"corpus IPv6 addresses · {axfr_note}"
             f"{zw['nsec_zones']} NSEC-walkable · "
             f"{zw['nsec3_zones']} NSEC3 · "
             f"{zw['unsigned_zones']} unsigned "
-            f"of {zw['domains']:,} .gov zones · "
-            f"{zw['total_names']:,} FQDNs enumerated "
+            f"of {zw['domains']:,} zones · "
+            f"{zw['total_names']:,} FQDNs → "
+            f"{zw.get('total_aaaa', 0):,} AAAA "
             f"({zw['date']})"
         ))
 
@@ -1454,20 +1477,72 @@ def _enrichment_section(data: dict | None) -> str:
         "</p>"
     )
 
+    # ── Zone walk detail block ────────────────────────────────────────────────
+    zone_walk_detail = ""
+    if zw := data.get("zone_walk"):
+        _ZT_LABELS = {
+            "nsec":     ("NSEC walk",     "Complete FQDN enumeration via iterative NSEC chain walk"),
+            "axfr":     ("AXFR transfer", "Complete zone obtained via unrestricted zone transfer (security finding)"),
+            "nsec3":    ("NSEC3 zones",   "Zone uses hashed NSEC3; enumeration limited to ~120-label wordlist"),
+            "unsigned": ("Unsigned",      "No DNSSEC; enumeration limited to ~120-label wordlist"),
+            "error":    ("Error / timeout", "NS unreachable or zone did not respond within timeout"),
+        }
+        type_rows_html = ""
+        for tr in zw.get("type_rows", []):
+            zt = tr["zone_type"]
+            label, method_note = _ZT_LABELS.get(zt, (zt, ""))
+            flag = " ⚠" if zt == "axfr" else ""
+            type_rows_html += (
+                f"<tr>"
+                f"<td><strong>{label}{flag}</strong>"
+                f"<div style='font-size:0.78rem;color:var(--muted);margin-top:2px'>{method_note}</div></td>"
+                f"<td class='num'>{tr['zones']:,}</td>"
+                f"<td class='num'>{tr['names']:,}</td>"
+                f"<td class='num'>{tr['aaaa']:,}</td>"
+                f"<td class='num'>{tr['corpus']:,}</td>"
+                f"</tr>"
+            )
+        if type_rows_html:
+            total_aaaa = zw.get("total_aaaa", 0)
+            pct_aaaa = (f"{100 * total_aaaa / zw['total_names']:.1f}%"
+                        if zw["total_names"] else "—")
+            zone_walk_detail = (
+                f"<h3 style='margin:1.5rem 0 0.5rem;font-size:1rem;font-weight:600'>"
+                f"DNS Zone Walk — FQDN Discovery Breakdown ({zw['date']})</h3>"
+                f"<p style='font-size:0.83rem;color:var(--muted);margin-bottom:0.75rem'>"
+                f"Each .gov zone is probed in sequence: AXFR zone transfer is attempted first "
+                f"(success is a security misconfiguration); zones are then classified by their "
+                f"DNSSEC denial-of-existence record type. NSEC-signed zones yield complete "
+                f"FQDN enumeration via iterative NSEC chain walking. NSEC3-hashed and unsigned "
+                f"zones fall back to a ~120-label federal-context wordlist. All discovered "
+                f"FQDNs are resolved for AAAA records; addresses are matched against corpus "
+                f"IPv6 prefixes. Zone names and individual FQDNs are stored in the database "
+                f"but not surfaced here — only aggregate counts are shown."
+                f"</p>"
+                f"<div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>"
+                f"{_table(['Zone Type / Method', 'Zones', 'FQDNs Found', 'With AAAA', 'Corpus Matches'], type_rows_html)}"
+                f"<p style='font-size:0.78rem;color:var(--muted);margin:0.5rem 0.25rem 0.25rem'>"
+                f"Total: {zw['total_names']:,} FQDNs discovered · "
+                f"{total_aaaa:,} resolved to AAAA ({pct_aaaa}) · "
+                f"{zw.get('unique_corpus_addrs', 0):,} unique corpus IPv6 addresses"
+                f"</p></div>"
+            )
+
     return f"""
 <section id="enrichment">
   <h2>Active-Prefix Enrichment</h2>
   <p class="section-blurb">
     BGP routing table entries prove a prefix is <em>announced</em>, not that it is
-    <em>operationally active</em>. Five independent enrichment signals cross-reference
+    <em>operationally active</em>. Six independent enrichment signals cross-reference
     announced prefixes against observable internet activity — including DNS records,
-    TLS certificate issuance, RPKI ROA coverage, and BGP community tags — to distinguish
-    maintained infrastructure from routing-table artifacts. TCP-based signals capture
-    hosts that firewalls hide from ICMP probes.
+    TLS certificate issuance, RPKI ROA coverage, BGP community tags, and DNS zone
+    enumeration — to distinguish maintained infrastructure from routing-table artifacts.
+    TCP-based and DNS-based signals capture hosts that firewalls hide from ICMP probes.
   </p>
   {stat_grid}
   {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>" + src_tbl + "</div>" + corpus_match_note if src_tbl else ""}
   {dnssec_detail}
+  {zone_walk_detail}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
     {placeholder_cards}
   </div>

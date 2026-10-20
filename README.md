@@ -21,6 +21,7 @@ Research toolkit for measuring IPv4/IPv6 prefix deployment over time for US Gove
 - [Ark reachability](#ark-reachability)
 - [IPv6 Hitlist: live endpoint detection](#ipv6-hitlist-live-endpoint-detection)
 - [Active-prefix enrichment](#active-prefix-enrichment)
+- [DNS zone walk enrichment](#dns-zone-walk-enrichment)
 - [Database schema](#database-schema)
 - [Python API](#python-api)
 - [Data sources](#data-sources)
@@ -292,7 +293,7 @@ All targets accept variable overrides on the command line (see [Configuration va
 
 ## GitHub Actions
 
-Seven workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
+Eight workflows automate the full pipeline in CI. All require a GitHub token with `contents: write` (provided automatically by `GITHUB_TOKEN`).
 
 ### Corpus Update (`corpus-update.yml`)
 
@@ -367,7 +368,7 @@ Downloads the TU Munich IPv6 Hitlist responsive-address file, matches each addre
 
 ### Active-prefix Enrichment Workflows
 
-Four enrichment workflows run independently of the BGP ingests and write to separate tables. Each downloads the existing DuckDB from `data-latest`, runs its enrichment pass, and re-uploads.
+Five enrichment workflows run independently of the BGP ingests and write to separate tables. Each downloads the existing DuckDB from `data-latest`, runs its enrichment pass, and re-uploads.
 
 #### .gov DNS Enumeration (`enrichment-dotgov-dns.yml`)
 
@@ -396,6 +397,24 @@ Four enrichment workflows run independently of the BGP ingests and write to sepa
 - **Manual dispatch**: accepts `af` (4, 6, or 0 for both; default 6)
 - Checks every corpus prefix / origin-AS pair against the [Cloudflare RPKI validity API](https://rpki.cloudflare.com/api/v1/validity/), falling back to the RIPE Stat API. Results — `valid`, `invalid`, or `not_found` — are stored in `rpki_validity` along with the ROA max-length.
 - **Why:** A `valid` ROA means the operator explicitly authorized this origin AS for this prefix, a strong signal of intentional, maintained operation. `invalid` may indicate route leaks or stale announcements worth investigation.
+
+#### DNS Zone Walk (`enrichment-zone-walk.yml`)
+
+- **Scheduled**: weekly Wednesdays 14:00 UTC
+- **Manual dispatch**: accepts `domain_limit` (integer; blank = all ~1,200 domains) and `observation_date` (YYYY-MM-DD; blank = today)
+- **Timeout**: 120 minutes
+- Runs a multi-phase DNS enumeration pipeline against every registered federal `.gov` domain. Results land in `zone_walk_meta` (per-domain summary) and `zone_walk_hosts` (per-resolved-address detail). Zone names and individual FQDNs are stored in the database but not surfaced on the public dashboard — only aggregate counts are displayed.
+- **Why:** OMB M-08-23 mandates DNSSEC signing for all `.gov` zones. Zones that use NSEC records (rather than NSEC3 hashing) are inherently enumerable — every hostname in the zone is discoverable through iterative NSEC chain walking. This surfaces management interfaces, VPN concentrators, and internal APIs that are invisible to ICMP hitlists and prefix-offset Atlas sweeps. See [DNS zone walk enrichment](#dns-zone-walk-enrichment) for full methodology.
+
+**Pipeline steps:**
+
+1. Downloads existing DuckDB; ensures CAIDA pfx2as IPv6 data is present (downloads rv6 if the current month's data is absent).
+2. Fetches the full CISA dotgov-data domain list (~1,200 `.gov` domains).
+3. For each domain, runs the four-phase walk (see [DNS zone walk enrichment](#dns-zone-walk-enrichment)).
+4. Resolves all discovered FQDNs concurrently for AAAA records (30 workers).
+5. Matches resolved addresses against corpus IPv6 prefixes via LPM.
+6. Writes per-domain rows to `zone_walk_meta` and per-address rows to `zone_walk_hosts`.
+7. Re-uploads the updated DuckDB and triggers the GitHub Pages rebuild.
 
 ### RIPE Atlas Prefix Sweep (`atlas-sweep.yml`)
 
@@ -729,6 +748,7 @@ The TU Munich IPv6 Hitlist sends ICMPv6 echo requests from a single vantage poin
 | **NIST USGv6 Deployment Monitor** | Per-domain IPv6 service metrics + DNSSEC status | Daily | Independent TCP reachability measurement; DNSSEC chain = actively maintained zone |
 | **Certificate Transparency (crt.sh)** | TLS certs issued to `*.gov` subdomains in last year | Weekly | Cert issuance date = reliable last-active lower bound; reveals subdomains absent from public DNS |
 | **RPKI validity (Cloudflare / RIPE Stat)** | ROA coverage for each prefix / origin-AS pair | Weekly | `valid` ROA = operator explicitly authorized this prefix, strong maintenance signal |
+| **DNS zone walk** | FQDN enumeration via NSEC chain walk + wordlist + AXFR | Weekly (Wed) | Discovers management interfaces, VPN concentrators, and internal APIs invisible to ICMP hitlists; AXFR success is itself a security finding |
 | **RIPE Atlas prefix sweep** | ICMPv6 ping + TCP/443/80/53 + traceroute per prefix | Weekly (Sat) | Multi-type probing finds hosts behind ICMP-blocking firewalls; traceroute hops reveal routers even when end-hosts are firewalled |
 | **Rapid7 FDNS AAAA** *(stub)* | Forward DNS AAAA records for the whole `.gov` namespace | On-demand | Broadest hostname coverage; requires Rapid7 Insight account |
 | **BGP community tags** | Standard and large communities on RIB entries | Per BGP ingest | Blackhole (`65535:666`) and traffic-engineering tags identify filtered or deprioritized prefixes |
@@ -746,6 +766,73 @@ Each enrichment source resolves hostnames or checks prefix metadata independentl
 3. The `atlas-sweep.yml` workflow runs automatically each Saturday. Run `workflow_dispatch` with `dry_run=true` first to verify credit cost before the first live sweep.
 
 **Rapid7 FDNS** (`usg_ipv6/pipeline/rapid7_fdns.py`): Download a Sonar FDNS AAAA `.json.gz` file from [opendata.rapid7.com](https://opendata.rapid7.com/sonar.fdns_v2/) (requires free Insight account). Pass the local path to `run_rapid7_fdns(db_path, fdns_path=...)`.
+
+---
+
+## DNS zone walk enrichment
+
+DNS zone walking discovers every hostname configured in a `.gov` zone by exploiting the enumerable structure of NSEC-signed DNSSEC zones. OMB M-08-23 directed federal agencies to DNSSEC-sign all `.gov` zones, which inadvertently makes many of them completely enumerable. This pipeline turns that property into an IPv6 address discovery signal.
+
+### Why zone walking matters for IPv6 measurement
+
+- ICMP-based hitlists and prefix-offset Atlas sweeps can only find addresses that respond to probes from known vantage points. Management interfaces, VPN concentrators, internal APIs, and mail infrastructure typically live behind firewalls that drop unsolicited probes.
+- NSEC-signed zones publish their full hostname list in DNS by design — querying NSEC records iteratively yields every FQDN in the zone, which can then be resolved for AAAA records.
+- `draft-fbw-dnsop-dnszonehop` identifies zone walking as the primary IPv6 address discovery vector for federal networks operating under OMB M-21-07.
+- AXFR zone transfers, when not properly restricted, return the entire zone in a single query — both a richer data source and a security misconfiguration.
+
+### Four-phase pipeline per zone
+
+Each `.gov` domain is processed through four sequential phases:
+
+#### Phase 1 — AXFR zone transfer attempt
+
+A standard DNS zone transfer (RFC 5936) is attempted against each authoritative nameserver. If the server permits it, the entire zone is returned as a single response containing every record — the most complete possible enumeration. A permitted AXFR is itself a security misconfiguration: authoritative servers should restrict zone transfers to known secondary nameservers. AXFR-permitted zones are flagged `axfr_permitted=TRUE` in `zone_walk_meta` and displayed with a warning on the dashboard.
+
+#### Phase 2 — Zone classification
+
+If AXFR is refused, the zone is probed with a deliberate NXDOMAIN query for a label that cannot exist (`zz9zz9-walk-probe.<domain>`). The DNSSEC denial-of-existence record type in the response reveals the zone's signing configuration:
+
+| Response record | Zone type | Implication |
+| --------------- | --------- | ----------- |
+| `NSEC` in authority | `nsec` | Zone uses unhashed NSEC — fully walkable |
+| `NSEC3` in authority | `nsec3` | Zone uses hashed NSEC3 — walking yields hashes, not names |
+| `DNSKEY` present but no NSEC/NSEC3 | `nsec3` | Signed zone, NSEC3 not surfaced in this response |
+| No DNSSEC records | `unsigned` | Zone is not DNSSEC-signed |
+| Timeout or no response | `error` | NS unreachable or unresponsive |
+
+#### Phase 3 — NSEC iterative chain walk (NSEC zones only)
+
+For zones classified as `nsec`, the pipeline performs a complete iterative walk of the NSEC chain. Each NSEC record's `next` field names the following owner name in the zone's canonical ordering; querying NSEC at each successive name eventually wraps back to the zone apex, at which point the walk is complete. This yields every FQDN in the zone with no guessing — the result is equivalent to a zone transfer in terms of name coverage. A hard cap of 10,000 names per zone prevents runaway walks on unusually large zones.
+
+Discovery method stored in `zone_walk_hosts`: `nsec_walk`.
+
+#### Phase 4 — Wordlist enumeration (NSEC3 and unsigned zones)
+
+Zones using NSEC3 hashing (or no DNSSEC at all) cannot be walked iteratively. Instead, each label in a ~120-entry federal-context wordlist is queried as a subdomain. The wordlist covers common federal hostname patterns: DNS servers (`ns1`, `resolver`), mail infrastructure (`mail`, `smtp`, `owa`, `autodiscover`), remote access (`vpn`, `ssl-vpn`, `citrix`, `rdp`, `bastion`), identity services (`adfs`, `sso`, `ldap`, `dc`), infrastructure (`ntp`, `dhcp`, `proxy`, `mgmt`), monitoring (`grafana`, `splunk`, `siem`), and federal-specific labels (`nipr`, `sipr`, `eauth`, `hris`).
+
+A label is recorded if the DNS response is not NXDOMAIN — meaning the name exists even if it currently has no AAAA record.
+
+Discovery method stored in `zone_walk_hosts`: `wordlist`.
+
+### AAAA resolution and corpus matching
+
+After all four phases complete across all zones (8 concurrent walk workers), all discovered FQDNs are resolved concurrently for AAAA records (30 workers). Each resolved address is matched against corpus IPv6 prefixes via the LPM index. Only addresses that fall inside a corpus prefix are considered corpus matches; addresses on commercial cloud providers (AWS, Akamai, Cloudflare) will not match and are not counted as corpus hits.
+
+### What the counts mean
+
+| Count | Source table | What it measures |
+| ----- | ------------ | ---------------- |
+| Zones (NSEC / NSEC3 / unsigned / AXFR) | `zone_walk_meta` | How each `.gov` zone was classified and what method was used |
+| FQDNs discovered (`names_discovered`) | `zone_walk_meta` | Total hostnames enumerated across all phases |
+| With AAAA (`aaaa_resolved`) | `zone_walk_meta` | Discovered FQDNs that resolved to at least one IPv6 address |
+| Corpus matches (`corpus_matched`) | `zone_walk_meta` | AAAA addresses that fall inside a corpus prefix |
+| Unique corpus addresses | Computed | Deduplicated corpus IPv6 addresses across all zones |
+
+**Why corpus matches are typically low:** Federal `.gov` domains increasingly use commercial CDN and cloud DNS providers (AWS Route 53, Akamai, Cloudflare) for web and mail infrastructure. Those providers' address space is not in the government-operated corpus. Zero or low corpus matches for a given zone does not indicate missing data — it reflects cloud-hosted service delivery.
+
+### Security note
+
+Zone walking queries only publicly available DNS data. Authoritative nameservers publish NSEC records by design; iterative NSEC queries are equivalent to ordinary recursive DNS lookups. AXFR uses the zone-transfer mechanism defined in RFC 5936; a server that refuses is not harmed. Zone names and individual FQDNs discovered by the pipeline are stored in the database for research analysis but are not surfaced on the public dashboard — only aggregate counts by zone type are displayed.
 
 ---
 
@@ -946,6 +1033,34 @@ One row per (snapshot, collector, prefix, origin ASN, community string). Written
 | `origin_asn` | BIGINT PK | Origin ASN |
 | `community` | VARCHAR PK | Community string: `asn:value` (standard) or `asn:ld1:ld2` (large) |
 
+### `zone_walk_meta`
+
+One row per (scan date, domain). Per-domain summary written by `enrichment-zone-walk.yml`.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `scan_date` | DATE PK | Date the zone walk ran |
+| `domain` | VARCHAR PK | Federal `.gov` domain |
+| `zone_type` | VARCHAR | `nsec`, `nsec3`, `axfr`, `unsigned`, or `error` — see [DNS zone walk enrichment](#dns-zone-walk-enrichment) |
+| `axfr_permitted` | BOOLEAN | TRUE if the authoritative server permitted a zone transfer (security finding) |
+| `names_discovered` | INTEGER | Total FQDNs found in this zone via the walk/wordlist/AXFR |
+| `aaaa_resolved` | INTEGER | FQDNs that resolved to at least one AAAA record |
+| `corpus_matched` | INTEGER | AAAA addresses that fell inside a corpus IPv6 prefix |
+
+### `zone_walk_hosts`
+
+One row per (scan date, domain, hostname, IPv6 address). Per-address detail written by `enrichment-zone-walk.yml`. Zone names and FQDNs are stored here but not surfaced on the public dashboard.
+
+| Column | Type | Description |
+| -------- | ------ | ------------- |
+| `scan_date` | DATE PK | Date the zone walk ran |
+| `domain` | VARCHAR PK | Federal `.gov` parent domain |
+| `hostname` | VARCHAR PK | Discovered FQDN |
+| `ipv6_address` | VARCHAR PK | IPv6 address that resolved from this hostname |
+| `matched_prefix` | VARCHAR | Corpus IPv6 prefix the address falls within (NULL if no match) |
+| `matched_asn` | BIGINT | Corpus ASN owning that prefix (NULL if no match) |
+| `discovery_method` | VARCHAR | `nsec_walk`, `axfr`, `wordlist`, or `none` |
+
 **Example queries:**
 
 ```sql
@@ -1075,6 +1190,41 @@ JOIN asn_corpus c ON ah.origin_asn = c.asn
 WHERE ah.observation_date = (SELECT MAX(observation_date) FROM atlas_hop_addresses)
 GROUP BY ah.hop_address, ah.matched_prefix, ah.origin_asn, c.agency
 ORDER BY seen_in_n_traceroutes DESC;
+
+-- Zone walk: per-zone-type summary for the most recent scan
+SELECT zone_type,
+       COUNT(*)              AS zones,
+       SUM(names_discovered) AS fqdns_found,
+       SUM(aaaa_resolved)    AS with_aaaa,
+       SUM(corpus_matched)   AS corpus_matches
+FROM zone_walk_meta
+WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_meta)
+GROUP BY zone_type
+ORDER BY fqdns_found DESC;
+
+-- Zone walk: domains that permitted AXFR (security finding)
+SELECT domain, names_discovered, aaaa_resolved, corpus_matched
+FROM zone_walk_meta
+WHERE scan_date = (SELECT MAX(scan_date) FROM zone_walk_meta)
+  AND axfr_permitted = TRUE
+ORDER BY names_discovered DESC;
+
+-- Zone walk: corpus IPv6 addresses discovered via zone walk (most recent scan)
+SELECT h.domain, h.hostname, h.ipv6_address, h.matched_prefix,
+       c.agency, h.discovery_method
+FROM zone_walk_hosts h
+JOIN asn_corpus c ON h.matched_asn = c.asn
+WHERE h.scan_date = (SELECT MAX(scan_date) FROM zone_walk_hosts)
+ORDER BY c.agency, h.domain, h.hostname;
+
+-- Zone walk: unique corpus IPv6 addresses per agency
+SELECT c.agency, c.tier, COUNT(DISTINCT h.ipv6_address) AS corpus_addrs
+FROM zone_walk_hosts h
+JOIN asn_corpus c ON h.matched_asn = c.asn
+WHERE h.scan_date = (SELECT MAX(scan_date) FROM zone_walk_hosts)
+  AND h.matched_prefix IS NOT NULL
+GROUP BY c.agency, c.tier
+ORDER BY corpus_addrs DESC;
 ```
 
 ---
@@ -1228,6 +1378,30 @@ df = conn.execute("SELECT * FROM prefix_records LIMIT 10").fetchdf()
 conn.close()
 ```
 
+### Zone walk pipeline
+
+```python
+from datetime import date
+from usg_ipv6.pipeline.zone_walk import run_zone_walk
+
+# Walk all ~1,200 federal .gov domains (takes up to ~90 minutes)
+result = run_zone_walk("data/usg_ipv6.duckdb")
+print(result)
+# {"scan_date": "2026-10-19", "domains_processed": 1187,
+#  "axfr_zones": 2, "nsec_zones": 312, "nsec3_zones": 498,
+#  "unsigned_zones": 201, "error_zones": 174,
+#  "names_discovered": 48210, "aaaa_resolved": 9831,
+#  "corpus_matched": 412, "unique_corpus_addresses": 287}
+
+# Test run against a small subset
+result = run_zone_walk("data/usg_ipv6.duckdb", domain_limit=50)
+
+# Override scan date (for backfill or replay)
+result = run_zone_walk("data/usg_ipv6.duckdb", scan_date=date(2026, 10, 1))
+```
+
+**Requires:** `caida_pfx2as` must contain IPv6 (af=6) rows for corpus prefix matching. The GitHub Actions workflow ensures this automatically; for local runs, run `make run COLLECTOR=route-views6` first.
+
 ### Report generation
 
 ```python
@@ -1248,7 +1422,7 @@ generate("data/usg_ipv6.duckdb", "web/index.html")
 | [CAIDA AS2Org](https://publicdata.caida.org/datasets/as-organizations/) | ASN-to-organization mapping (published 1st of each month) | Public HTTP, no auth |
 | [ARIN WHOIS REST API](https://www.arin.net/resources/registry/whois/rws/api/) | Authoritative ASN registration | Public REST API, no auth |
 | [TU Munich IPv6 Hitlist](https://ipv6hitlist.github.io) | Verified responsive IPv6 addresses (weekly) | Public HTTP, no auth |
-| [CISA dotgov-data](https://github.com/cisagov/dotgov-data) | Full list of registered federal `.gov` domains (enrichment) | Public GitHub, no auth |
+| [CISA dotgov-data](https://github.com/cisagov/dotgov-data) | Full list of registered federal `.gov` domains; domain list for zone walk | Public GitHub, no auth |
 | [NIST USGv6 Deployment Monitor](https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov) | Per-domain IPv6 service metrics and DNSSEC status (enrichment) | Public HTTP, no auth |
 | [crt.sh Certificate Transparency](https://crt.sh) | TLS certificates issued to `*.gov` subdomains (enrichment) | Public REST API, no auth |
 | [Cloudflare RPKI API](https://rpki.cloudflare.com/api/v1/validity/) | RPKI ROA validity for corpus prefix / ASN pairs (enrichment) | Public REST API, no auth |
@@ -1298,6 +1472,7 @@ usg_ipv6/
     nist_deploymon.py    # NIST USGv6 scraper (IPv6 service metrics + DNSSEC) → nist_deploymon, domain_services
     cert_transparency.py # crt.sh SAN resolution for *.gov certs → domain_services
     rpki_validity.py     # Cloudflare / RIPE RPKI ROA validation → rpki_validity
+    zone_walk.py         # DNS zone walk: AXFR + NSEC chain walk + wordlist → zone_walk_meta / zone_walk_hosts
     rapid7_fdns.py       # Stub: Rapid7 Sonar FDNS AAAA ingest (requires Insight account)
     ripe_atlas.py        # RIPE Atlas prefix sweep: ping/TCP/traceroute per corpus IPv6 prefix
 
@@ -1312,6 +1487,7 @@ usg_ipv6/
   enrichment-nist.yml           # Daily NIST USGv6 monitor scrape (20:17 UTC)
   enrichment-cert-transparency.yml # Weekly crt.sh Certificate Transparency (Mon 03:23 UTC)
   enrichment-rpki.yml           # Weekly RPKI ROA validity check (Tue 04:11 UTC)
+  enrichment-zone-walk.yml      # Weekly DNS zone walk: AXFR + NSEC + wordlist (Wed 14:00 UTC)
   publish.yml                   # Versioned corpus release on push to main
   pages.yml                     # Static HTML dashboard → GitHub Pages
 
