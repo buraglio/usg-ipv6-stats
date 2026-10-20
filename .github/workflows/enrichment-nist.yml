@@ -53,7 +53,7 @@ jobs:
           PYEOF
 
       - name: Upload updated DuckDB
-        if: always()
+        if: success() || failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
