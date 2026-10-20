@@ -72,3 +72,8 @@ jobs:
                --title "Data: $(date +%Y-%m-%d)" \
                --notes "dotgov DNS enrichment" \
                --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true

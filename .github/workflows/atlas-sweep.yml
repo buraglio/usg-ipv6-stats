@@ -17,9 +17,10 @@ name: RIPE Atlas Prefix Sweep
 # Requires: RIPE_ATLAS_API_KEY secret with "Create measurements" scope.
 # DuckDB lives in the rolling 'data-latest' GitHub Release.
 #
-# Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping only):
-#   100 x 5 x 5 x 1 = 2,500 credits/run.
-#   ~530 corpus prefixes cycle fully in ~6 weekly runs.
+# Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping+traceroute):
+#   ping:       100 x 5 x 5 x  1 =  2,500 credits/run
+#   traceroute: 100 x 5 x 5 x 10 = 25,000 credits/run
+#   Total: ~27,500 credits/run.  ~530 corpus prefixes cycle fully in ~6 weekly runs.
 
 on:
   schedule:
@@ -39,9 +40,9 @@ on:
       measurement_labels:
         description: |
           Comma-separated measurement types. Valid: ping, traceroute, tcp_443, tcp_80, tcp_53.
-          Default: ping
+          Default: ping,traceroute
         required: false
-        default: 'ping'
+        default: 'ping,traceroute'
         type: string
       prefix_batch_size:
         description: Prefixes to sweep per run (default 100; full corpus ~530).
@@ -138,7 +139,7 @@ jobs:
       - name: Estimate Atlas credit cost
         env:
           INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '5' }}
-          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping' }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping,traceroute' }}
           INPUT_PREFIX_BATCH_SIZE:  ${{ inputs.prefix_batch_size || '100' }}
         run: |
           uv run python << 'PYEOF'
@@ -212,7 +213,7 @@ jobs:
           RIPE_ATLAS_API_KEY:       ${{ secrets.RIPE_ATLAS_API_KEY }}
           INPUT_PROBE_COUNT:        ${{ inputs.probe_count || '5' }}
           INPUT_COUNTRY_CODE:       ${{ inputs.country_code || 'US' }}
-          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping' }}
+          INPUT_MEASUREMENT_LABELS: ${{ inputs.measurement_labels || 'ping,traceroute' }}
           INPUT_PREFIX_BATCH_SIZE:  ${{ inputs.prefix_batch_size || '100' }}
           INPUT_DRY_RUN:            ${{ inputs.dry_run || 'false' }}
           INPUT_OBSERVATION_DATE:   ${{ inputs.observation_date }}

@@ -26,9 +26,10 @@ Per run (bounded by prefix_batch_size):
    generate candidate target addresses, submit all measurements concurrently
    (ThreadPoolExecutor), write IDs to atlas_pending_measurements, return.
 
-Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping only):
-  100 x 5 x 5 x 1 = 2,500 credits per run.
-  530 prefixes cycled at 100/week = 6 weeks for full corpus coverage.
+Credit estimate (defaults: 100 prefixes, 5 targets, 5 probes, ping+traceroute):
+  ping:        100 x 5 x 5 x  1 =  2,500 credits/run
+  traceroute:  100 x 5 x 5 x 10 = 25,000 credits/run
+  Total: ~27,500 credits/run.  530 prefixes cycled at 100/week = 6 weeks for full corpus coverage.
 
 API key
 -------
@@ -61,7 +62,7 @@ _MEASUREMENT_SPECS: list[tuple[str, str, dict, int]] = [
 
 _TCP_PORTS = {"tcp_443": 443, "tcp_80": 80, "tcp_53": 53}
 
-_DEFAULT_LABELS = ["ping"]
+_DEFAULT_LABELS = ["ping", "traceroute"]
 
 # Low-numbered host-part offsets to probe per prefix.
 _PROBE_OFFSETS = [1, 2, 0xa, 0x10, 0x53]

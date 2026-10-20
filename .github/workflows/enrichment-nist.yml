@@ -63,3 +63,8 @@ jobs:
                --title "Data: $(date +%Y-%m-%d)" \
                --notes "NIST USGv6 monitor enrichment" \
                --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true
