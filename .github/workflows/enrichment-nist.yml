@@ -43,6 +43,7 @@ jobs:
         run: gh release download data-latest --pattern '*.duckdb' --dir data/
 
       - name: Run NIST USGv6 scrape
+        continue-on-error: true
         run: |
           uv run python << 'PYEOF'
           import json

@@ -1,4 +1,4 @@
-.PHONY: setup corpus run backfill ark ark-backfill hitlist hitlist-backfill test lint
+.PHONY: setup corpus run backfill ark ark-backfill hitlist hitlist-backfill apnic apnic-backfill test lint
 
 DB_PATH ?= data/usg_ipv6.duckdb
 COLLECTOR ?= route-views2
@@ -33,6 +33,12 @@ hitlist:
 hitlist-backfill:
 	uv run usg hitlist backfill $(SINCE) $(UNTIL) --db $(DB_PATH)
 
+apnic:
+	uv run python -m usg_ipv6.pipeline.apnic_v6 --db $(DB_PATH)
+
+apnic-backfill:
+	uv run python -m usg_ipv6.pipeline.apnic_v6 --db $(DB_PATH) --backfill
+
 test:
 	uv run pytest
 
@@ -52,4 +58,5 @@ lint:
 		usg_ipv6/pipeline/ark.py \
 		usg_ipv6/pipeline/hitlist.py \
 		usg_ipv6/cli.py \
+		usg_ipv6/pipeline/apnic_v6.py \
 		usg_ipv6/report_html.py

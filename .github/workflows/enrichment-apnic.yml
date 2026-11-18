@@ -1,0 +1,101 @@
+name: Enrichment — APNIC IPv6 Capability
+
+# Fetches APNIC ad-based IPv6 client capability measurements for routing-present
+# corpus ASNs and stores daily observations in apnic_v6_stats.
+#
+# APNIC's methodology measures what fraction of users sourcing traffic FROM an
+# ASN have working IPv6 (capable_pc) and prefer it via happy eyeballs
+# (preferred_pc). This is a client/demand-side metric distinct from the
+# infrastructure deployment metrics the main pipeline measures.
+#
+# Most government ASNs have very low seen counts (< 3/day) so capability
+# percentages are interpreted with a minimum seen_30 ≥ 5 threshold in the
+# report layer. Data is stored regardless so trends accumulate over time.
+#
+# Incremental run (default / scheduled): fetches only routing-present ASNs,
+#   inserts only records newer than the last stored date per ASN. Fast (~2 min).
+#
+# Backfill run (workflow_dispatch with backfill=true): fetches all corpus ASNs
+#   and loads their full APNIC history back to ~2013. Slow (~15 min). Run once
+#   after first deployment, or when new ASNs are added to the corpus.
+
+on:
+  schedule:
+    - cron: '23 3 * * *'    # 03:23 UTC — after APNIC nightly update
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: >
+          Load full APNIC history for all corpus ASNs (slow, ~15 min).
+          Leave unchecked for a normal incremental run.
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  apnic-enrichment:
+    name: APNIC IPv6 client capability enrichment
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --reinstall-package usg-ipv6-stats
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Download existing DuckDB from rolling release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --pattern '*.duckdb' --dir data/
+
+      - name: Run APNIC IPv6 enrichment
+        env:
+          INPUT_BACKFILL: ${{ inputs.backfill || 'false' }}
+        run: |
+          uv run python << 'PYEOF'
+          import json, os, sys
+          from usg_ipv6.pipeline.apnic_v6 import run_apnic_v6
+
+          backfill = os.environ.get("INPUT_BACKFILL", "false").lower() == "true"
+          result = run_apnic_v6(db_path="data/usg_ipv6.duckdb", backfill=backfill)
+          print(json.dumps(result, indent=2))
+          print()
+          print(f"ASNs targeted:   {result['asns_targeted']}")
+          print(f"ASNs with data:  {result['asns_with_data']}")
+          print(f"Records inserted:{result['records_inserted']:,}  "
+                f"(of {result['records_seen']:,} seen from APNIC)")
+          PYEOF
+
+      - name: Upload updated DuckDB to rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f data/usg_ipv6.duckdb ]; then exit 0; fi
+          gh release upload data-latest data/usg_ipv6.duckdb --clobber \
+          || gh release create data-latest data/usg_ipv6.duckdb \
+               --title "Data: $(date +%Y-%m-%d)" \
+               --notes "APNIC IPv6 enrichment." \
+               --prerelease
+
+      - name: Rebuild GitHub Pages dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml || true

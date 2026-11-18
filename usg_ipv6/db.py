@@ -269,3 +269,16 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             PRIMARY KEY (scan_date, hostname, ipv6_address)
         )
     """)
+    # ── APNIC IPv6 client capability enrichment ───────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS apnic_v6_stats (
+            asn              BIGINT  NOT NULL,
+            observation_date DATE    NOT NULL,
+            seen             INTEGER NOT NULL DEFAULT 0,
+            capable          INTEGER NOT NULL DEFAULT 0,
+            capable_pc       DOUBLE  NOT NULL DEFAULT 0.0,
+            preferred        INTEGER NOT NULL DEFAULT 0,
+            preferred_pc     DOUBLE  NOT NULL DEFAULT 0.0,
+            PRIMARY KEY (asn, observation_date)
+        )
+    """)
