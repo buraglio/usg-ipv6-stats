@@ -519,6 +519,49 @@ def generate(db_path: str = DEFAULT_DB, out_path: str = DEFAULT_OUT) -> None:
                 if addr_row and "zone_walk" in enrich:
                     enrich["zone_walk"]["unique_corpus_addrs"] = addr_row[0] or 0
 
+        if "apnic_v6_stats" in tables:
+            apnic_total_row = conn.execute(
+                "SELECT COUNT(DISTINCT asn) FROM apnic_v6_stats"
+            ).fetchone()
+            apnic_interp_rows = conn.execute("""
+                SELECT a.asn,
+                       c.agency,
+                       c.tier,
+                       MAX(a.observation_date)::VARCHAR AS latest_date,
+                       COUNT(*) AS observations,
+                       AVG(a.seen)
+                           FILTER (WHERE a.observation_date >= CURRENT_DATE - 30)
+                           AS seen_30,
+                       AVG(a.capable_pc)
+                           FILTER (WHERE a.observation_date >= CURRENT_DATE - 30)
+                           AS cap_pct_30,
+                       AVG(a.preferred_pc)
+                           FILTER (WHERE a.observation_date >= CURRENT_DATE - 30)
+                           AS pref_pct_30
+                FROM apnic_v6_stats a
+                JOIN asn_corpus c ON c.asn = a.asn
+                GROUP BY a.asn, c.agency, c.tier
+                HAVING AVG(a.seen)
+                           FILTER (WHERE a.observation_date >= CURRENT_DATE - 30)
+                       >= 5
+                ORDER BY cap_pct_30 DESC NULLS LAST
+            """).fetchall()
+            if apnic_total_row and apnic_total_row[0] > 0:
+                enrich["apnic"] = {
+                    "asns_with_data": apnic_total_row[0],
+                    "asns_interpretable": len(apnic_interp_rows),
+                    "rows": [
+                        {
+                            "asn": r[0], "agency": r[1], "tier": r[2],
+                            "latest_date": r[3], "observations": r[4],
+                            "seen_30": round(r[5], 1) if r[5] is not None else 0.0,
+                            "cap_pct_30": round(r[6], 1) if r[6] is not None else 0.0,
+                            "pref_pct_30": round(r[7], 1) if r[7] is not None else 0.0,
+                        }
+                        for r in apnic_interp_rows
+                    ],
+                }
+
         if enrich:
             enrichment_data = enrich
     except Exception:
@@ -862,6 +905,24 @@ def _page(
     <a href="https://www.caida.org/catalog/datasets/as-organizations/">CAIDA AS2Org</a>
     organization data, with manual verification for ambiguous entries.
   </p>
+  <p class="section-blurb" style="margin-top:0.75rem">
+    IPv6 client capability data is provided by
+    <a href="https://stats.labs.apnic.net/ipv6/">APNIC Labs</a>
+    (<a href="https://stats.labs.apnic.net/cgi-bin/json-table-v6.pl">JSON API</a>).
+    APNIC's methodology embeds two image probes — one IPv4-only, one IPv6-only — in
+    web advertising content to measure what fraction of end-user sessions can reach
+    an IPv6-only address (<em>capable_pc</em>) and what fraction prefer IPv6 via
+    happy-eyeballs (<em>preferred_pc</em>). Measurements are per-ASN, ad-funded,
+    client-side, and represent end-user/demand-side IPv6 adoption rather than
+    server-side infrastructure deployment. Per-ASN daily time-series data back to
+    approximately 2013 is available at
+    <a href="https://stats.labs.apnic.net/ipv6/">stats.labs.apnic.net/ipv6/</a>.
+    See also the APNIC blog post
+    <a href="https://blog.apnic.net/2017/01/16/measuring-ipv6-eyeballs/">"Measuring
+    IPv6 eyeballs"</a> for methodology details.
+    ASN measurements with fewer than 5 daily observed sessions (30-day average) are
+    stored but excluded from the enrichment table due to statistical marginalness.
+  </p>
   {snap_tbl}
 </section>
 
@@ -924,7 +985,8 @@ def _page(
     <a href="https://github.com/cisagov/dotgov-data">CISA dotgov-data</a> ·
     <a href="https://usgv6-deploymon.nist.gov/cgi-bin/generate-gov">NIST USGv6</a> ·
     <a href="https://crt.sh">crt.sh CT</a> ·
-    <a href="https://rpki.cloudflare.com">Cloudflare RPKI</a>
+    <a href="https://rpki.cloudflare.com">Cloudflare RPKI</a> ·
+    <a href="https://stats.labs.apnic.net/ipv6/">APNIC IPv6 Stats</a>
   </p>
   <p style="margin-top:0.4rem">
     <a href="https://github.com/buraglio/usg-ipv6-stats">github.com/buraglio/usg-ipv6-stats</a>
@@ -1260,7 +1322,7 @@ def _enrichment_section(data: dict | None) -> str:
   <h2>Active-Prefix Enrichment</h2>
   <p class="section-blurb">
     BGP routing table entries prove a prefix is <em>announced</em>, not that it is
-    <em>operationally active</em>. Five independent enrichment signals cross-reference
+    <em>operationally active</em>. Six independent enrichment signals cross-reference
     announced prefixes against observable internet activity to distinguish maintained
     infrastructure from routing-table artifacts.
     TCP services (name servers, mail relays, HTTPS endpoints) are visible through
@@ -1317,6 +1379,14 @@ def _enrichment_section(data: dict | None) -> str:
                "Zone names stored in DB only — aggregate counts shown here.",
                "<strong>Cadence:</strong> Weekly · <strong>Tables:</strong> "
                "<code>zone_walk_meta</code>, <code>zone_walk_hosts</code>"),
+        _ecard("#0550ae", "APNIC IPv6 Client Capability",
+               "Ad-based client-side measurement of IPv6 capability and happy-eyeballs preference "
+               "for users sourcing traffic from each corpus ASN. A demand-side complement to "
+               "infrastructure deployment metrics. Statistically meaningful only for ASNs with "
+               "≥5 measured sessions/day (30-day average); raw data stored for all ASNs.",
+               "<strong>Cadence:</strong> Daily · <strong>Table:</strong> "
+               "<code>apnic_v6_stats</code> · <strong>Source:</strong> "
+               "<a href='https://stats.labs.apnic.net/ipv6/'>stats.labs.apnic.net</a>"),
     ])
 
     if data is None:
@@ -1395,6 +1465,14 @@ def _enrichment_section(data: dict | None) -> str:
             f"{zw['total_names']:,} FQDNs → "
             f"{zw.get('total_aaaa', 0):,} AAAA "
             f"({zw['date']})"
+        ))
+
+    apnic = data.get("apnic")
+    if apnic and apnic["asns_interpretable"] > 0:
+        stat_cards.append(_card(
+            "ipv6b", "APNIC IPv6 Capable",
+            f"{apnic['asns_interpretable']}",
+            f"ASNs with ≥5 daily sessions (30d avg) of {apnic['asns_with_data']} with any APNIC data",
         ))
 
     src_rows = data.get("domain_sources", [])
@@ -1528,21 +1606,58 @@ def _enrichment_section(data: dict | None) -> str:
                 f"</p></div>"
             )
 
+    # ── APNIC detail block ────────────────────────────────────────────────────
+    apnic_detail = ""
+    if apnic := data.get("apnic"):
+        if apnic["rows"]:
+            apnic_rows_html = "".join(
+                f"<tr>"
+                f"<td><code>{r['asn']}</code></td>"
+                f"<td>{_esc(r['agency'])}</td>"
+                f"<td><span class='tier-tag tier-{_esc(r['tier'])}'>{_tier_label(r['tier'])}</span></td>"
+                f"<td class='num'>{r['seen_30']:.1f}</td>"
+                f"<td class='num'>{r['cap_pct_30']:.1f}%</td>"
+                f"<td class='num'>{r['pref_pct_30']:.1f}%</td>"
+                f"<td class='num'>{r['observations']:,}</td>"
+                f"<td>{_esc(r['latest_date'])}</td>"
+                f"</tr>"
+                for r in apnic["rows"]
+            )
+            apnic_detail = (
+                f"<h3 style='margin:1.5rem 0 0.5rem;font-size:1rem;font-weight:600'>"
+                f"APNIC IPv6 Client Capability — ASNs with ≥5 daily sessions (30-day average)</h3>"
+                f"<p style='font-size:0.83rem;color:var(--muted);margin-bottom:0.75rem'>"
+                f"<a href='https://stats.labs.apnic.net/ipv6/'>APNIC</a> embeds two image probes "
+                f"— one IPv4-only, one IPv6-only — in web ad content. The fraction of user sessions "
+                f"that successfully fetch the IPv6 probe is <em>capable_pc</em>; the fraction where "
+                f"IPv6 wins happy-eyeballs is <em>preferred_pc</em>. This is a client/demand-side "
+                f"metric, not an infrastructure measure. Government ASNs are infrastructure operators, "
+                f"not consumer ISPs; most corpus ASNs have very few measured sessions per day. "
+                f"Only ASNs averaging ≥5 sessions/day over the past 30 days are shown below; "
+                f"all {apnic['asns_with_data']} ASNs with any APNIC data are stored in <code>apnic_v6_stats</code>."
+                f"</p>"
+                f"<div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>"
+                f"{_table(['ASN', 'Agency', 'Tier', 'Seen/day (30d avg)', 'Capable % (30d)', 'Preferred % (30d)', 'Total Obs.', 'Latest Date'], apnic_rows_html)}"
+                f"</div>"
+            )
+
     return f"""
 <section id="enrichment">
   <h2>Active-Prefix Enrichment</h2>
   <p class="section-blurb">
     BGP routing table entries prove a prefix is <em>announced</em>, not that it is
-    <em>operationally active</em>. Six independent enrichment signals cross-reference
+    <em>operationally active</em>. Seven independent enrichment signals cross-reference
     announced prefixes against observable internet activity — including DNS records,
-    TLS certificate issuance, RPKI ROA coverage, BGP community tags, and DNS zone
-    enumeration — to distinguish maintained infrastructure from routing-table artifacts.
+    TLS certificate issuance, RPKI ROA coverage, BGP community tags, DNS zone
+    enumeration, and APNIC client-side IPv6 capability measurement — to distinguish
+    maintained infrastructure from routing-table artifacts.
     TCP-based and DNS-based signals capture hosts that firewalls hide from ICMP probes.
   </p>
   {stat_grid}
   {"<h3 style='margin:1.25rem 0 0.5rem;font-size:1rem;font-weight:600'>Domain service coverage by enrichment source</h3><div class='card' style='overflow-x:auto;margin-bottom:0.5rem'>" + src_tbl + "</div>" + corpus_match_note if src_tbl else ""}
   {dnssec_detail}
   {zone_walk_detail}
+  {apnic_detail}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.25rem">
     {placeholder_cards}
   </div>
