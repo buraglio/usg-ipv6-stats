@@ -16,7 +16,7 @@ name: Enrichment — APNIC IPv6 Capability
 #   inserts only records newer than the last stored date per ASN. Fast (~2 min).
 #
 # Backfill run (workflow_dispatch with backfill=true): fetches all corpus ASNs
-#   and loads their full APNIC history back to ~2013. Slow (~15 min). Run once
+#   and loads their full APNIC history back to ~2013. Slow (~45 min). Run once
 #   after first deployment, or when new ASNs are added to the corpus.
 
 on:
@@ -26,7 +26,7 @@ on:
     inputs:
       backfill:
         description: >
-          Load full APNIC history for all corpus ASNs (slow, ~15 min).
+          Load full APNIC history for all corpus ASNs (slow, ~45 min).
           Leave unchecked for a normal incremental run.
         required: false
         default: 'false'
@@ -42,7 +42,7 @@ jobs:
   apnic-enrichment:
     name: APNIC IPv6 client capability enrichment
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
